@@ -176,4 +176,29 @@ class DatabaseService {
       whereArgs: [orderId],
     );
   }
+
+  // Очистить все данные из базы данных
+  static Future<void> clearAllData() async {
+    try {
+      final db = await database;
+      
+      // Очищаем все таблицы
+      await db.delete('orders');
+      await db.delete('drivers');
+      await db.delete('taxiparks');
+      
+      print('✅ Database cleared successfully');
+    } catch (e) {
+      print('❌ Error clearing database: $e');
+    }
+  }
+
+  // Закрыть соединение с базой данных
+  static Future<void> closeDatabase() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+      print('✅ Database connection closed');
+    }
+  }
 }

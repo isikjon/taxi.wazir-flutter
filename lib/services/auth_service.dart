@@ -1,85 +1,170 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'api_service.dart';
+import 'user_data_service.dart';
 import 'database_service.dart';
+import '../utils/phone_utils.dart';
 
 class AuthService {
-  static Future<Map<String, dynamic>> login(String phone, String password) async {
+  static const String _isLoggedInKey = 'is_logged_in';
+  static const String _driverDataKey = 'driver_data';
+
+  static Future<Map<String, dynamic>> login(String phone, String smsCode) async {
     try {
-      final driver = await DatabaseService.getDriverByPhone(phone);
+      final response = await ApiService.instance.loginDriver(phone, smsCode);
       
-      if (driver != null) {
-        final token = 'local_token_${driver['id']}';
-        await ApiService.setToken(token);
+      if (response['success']) {
+        final driverData = response['data']['driver'];
+        
+        // Проверяем статус водителя
+        if (driverData != null) {
+          final status = driverData['status'];
+          
+          // Если водитель заблокирован
+          if (status == 'inactive' || driverData['blocked'] == true) {
+            return {
+              'success': false,
+              'error': 'blocked',
+              'message': driverData['blockMessage'] ?? 'Ваш аккаунт заблокирован суперадмином. Для связи: +996 559 868 878',
+            };
+          }
+          
+          // Если водитель активен, сохраняем данные
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool(_isLoggedInKey, true);
+          await prefs.setString(_driverDataKey, jsonEncode(driverData));
+          print('Saved driver data: ${jsonEncode(driverData)}');
+          
+          // Обновляем данные в UserDataService (сохраняем нормализованный номер)
+          final String normalizedPhone = PhoneUtils.normalizePhoneNumber(phone);
+          await UserDataService.instance.savePhoneNumber(normalizedPhone);
+          
+          // Если есть данные о таксопарке, сохраняем их
+          if (driverData['taxiparkName'] != null) {
+            final taxiparkData = {
+              'id': driverData['taxiparkId'] ?? 1,
+              'name': driverData['taxiparkName'],
+            };
+            await UserDataService.instance.saveParkData(taxiparkData);
+            print('Updated taxipark data: $taxiparkData');
+          }
+          
+          // Если есть данные о машине, сохраняем их
+          if (driverData['carModel'] != null) {
+            await UserDataService.instance.saveCarData(
+              brand: driverData['carBrand'] ?? '',
+              model: driverData['carModel'] ?? '',
+              color: driverData['carColor'] ?? '',
+              year: driverData['carYear'] ?? '',
+              licensePlate: driverData['carNumber'] ?? '',
+              vin: driverData['carVin'] ?? '',
+              bodyNumber: driverData['carBodyNumber'] ?? '',
+              sts: driverData['carSts'] ?? '',
+            );
+            print('Updated car data from login');
+          }
+          
+          return {
+            'success': true,
+            'isNewUser': response['isNewUser'] ?? false,
+            'driver': driverData,
+          };
+        }
+        
+        // Если это новый пользователь
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(_isLoggedInKey, true);
+        
         return {
-          'access_token': token,
-          'driver': driver,
-          'isNewUser': false,
+          'success': true,
+          'isNewUser': response['isNewUser'] ?? false,
+          'driver': null,
         };
       } else {
-        // Создаем нового пользователя
-        final newDriver = await _createNewDriver(phone);
-        final token = 'local_token_${newDriver['id']}';
-        await ApiService.setToken(token);
+        // Проверяем, не удален ли водитель
+        if (response['error']?.contains('не найден') == true || 
+            response['error']?.contains('удален') == true) {
+          return {
+            'success': false,
+            'error': 'deleted',
+            'message': 'Ваш аккаунт удален суперадмином. Для связи: +996 559 868 878',
+          };
+        }
+        
         return {
-          'access_token': token,
-          'driver': newDriver,
-          'isNewUser': true,
+          'success': false,
+          'error': response['error'],
         };
       }
     } catch (e) {
-      throw Exception('Ошибка авторизации: $e');
+      return {
+        'success': false,
+        'error': 'Ошибка авторизации: $e',
+      };
     }
-  }
-
-  static Future<Map<String, dynamic>> _createNewDriver(String phone) async {
-    // Создаем нового водителя в локальной БД
-    final db = await DatabaseService.database;
-    final result = await db.insert('drivers', {
-      'first_name': '',
-      'last_name': '',
-      'phone': phone,
-      'car_model': '',
-      'car_number': '',
-      'balance': 0.0,
-      'tariff': 'Эконом',
-      'taxipark_id': 1, // По умолчанию первый таксопарк
-      'is_active': 1,
-      'is_online': 0,
-    });
-    
-    // Получаем созданного водителя
-    final drivers = await db.query(
-      'drivers',
-      where: 'id = ?',
-      whereArgs: [result],
-    );
-    
-    return drivers.first;
   }
 
   static Future<void> logout() async {
     try {
-      await ApiService.post('/auth/driver/logout');
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Очищаем все данные авторизации
+      await prefs.remove(_isLoggedInKey);
+      await prefs.remove(_driverDataKey);
+      
+      // Очищаем данные пользователя из UserDataService
+      await UserDataService.instance.clearUserData();
+      
+      // Очищаем базу данных
+      await DatabaseService.clearAllData();
+      
+      // Очищаем все остальные данные
+      await prefs.clear();
+      
+      print('✅ Logout successful - all data cleared');
     } catch (e) {
-    } finally {
-      await ApiService.clearToken();
+      print('❌ Error during logout: $e');
     }
   }
 
   static Future<bool> isLoggedIn() async {
-    await ApiService.loadToken();
-    return ApiService.accessToken != null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_isLoggedInKey) ?? false;
+    } catch (e) {
+      return false;
+    }
   }
 
   static Future<Map<String, dynamic>?> getCurrentDriver() async {
     try {
-      final token = ApiService.accessToken;
-      if (token != null && token.startsWith('local_token_')) {
-        final driverId = int.parse(token.replaceFirst('local_token_', ''));
-        final drivers = await DatabaseService.getDrivers();
-        return drivers.firstWhere((d) => d['id'] == driverId);
+      final prefs = await SharedPreferences.getInstance();
+      final driverDataString = prefs.getString(_driverDataKey);
+      print('Raw driver data string: $driverDataString');
+      
+      if (driverDataString != null && driverDataString.isNotEmpty) {
+        // Проверяем, что строка начинается с { (валидный JSON)
+        if (driverDataString.startsWith('{')) {
+          try {
+            final driverData = jsonDecode(driverDataString) as Map<String, dynamic>;
+            print('Parsed driver data: $driverData');
+            return driverData;
+          } catch (e) {
+            print('JSON parsing error: $e');
+            // Если JSON невалидный, очищаем данные
+            await prefs.remove(_driverDataKey);
+            return null;
+          }
+        } else {
+          print('Invalid JSON format, clearing data');
+          // Очищаем невалидные данные
+          await prefs.remove(_driverDataKey);
+          return null;
+        }
       }
       return null;
     } catch (e) {
+      print('Error getting driver data: $e');
       return null;
     }
   }

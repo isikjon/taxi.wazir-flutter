@@ -6,6 +6,9 @@ class AppSpacing {
   static const double xl = 32.0;
   static const double xxl = 48.0;
   
+  static const double bottomSafeArea = 24.0;
+  static const double bottomPadding = 16.0;
+  
   static const double borderRadius = 12.0;
   static const double borderRadiusSmall = 8.0;
   static const double borderRadiusMedium = 12.0;

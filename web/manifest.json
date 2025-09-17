@@ -1,11 +1,11 @@
 {
-    "name": "voditel_taxi",
-    "short_name": "voditel_taxi",
+    "name": "Водитель Такси",
+    "short_name": "Водитель Такси",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Приложение для водителей такси",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

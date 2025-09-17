@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../styles/app_colors.dart';
-import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
 
 class CityPopupScreen extends StatefulWidget {
@@ -185,25 +184,22 @@ class _CityPopupScreenState extends State<CityPopupScreen>
     return AppBar(
       backgroundColor: AppColors.background,
       elevation: 0,
-      leading: Container(
-        margin: const EdgeInsets.all(AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
+      leading: IconButton(
+        icon: const Icon(
+          Icons.arrow_back_ios,
+          color: AppColors.textPrimary,
+          size: 20,
         ),
-        child: IconButton(
-          icon: const Icon(
-            Icons.close,
-            color: AppColors.primary,
-            size: 20,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        'Выберите город',
-        style: AppTextStyles.h2.copyWith(
-          fontWeight: FontWeight.bold,
+        'Выбор Города',
+        style: const TextStyle(
+          fontFamily: 'Montserrat',
+          fontWeight: FontWeight.w600,
+          fontSize: 23,
+          height: 24 / 23,
+          letterSpacing: 0,
           color: AppColors.textPrimary,
         ),
       ),
@@ -219,44 +215,26 @@ class _CityPopupScreenState extends State<CityPopupScreen>
         child: Container(
           margin: const EdgeInsets.all(AppSpacing.lg),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.divider),
-            borderRadius: BorderRadius.circular(AppSpacing.borderRadiusMedium),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.1),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Поиск города...',
-              hintStyle: TextStyle(color: AppColors.textHint),
+              hintStyle: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
               border: InputBorder.none,
-              prefixIcon: Container(
-                width: 24,
-                height: 24,
-                margin: const EdgeInsets.only(right: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
-                ),
-                child: Center(
-                  child: Text(
-                    '🔍',
-                    style: TextStyle(
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: AppColors.textSecondary,
+                size: 20,
               ),
             ),
-            style: AppTextStyles.bodyLarge.copyWith(
+            style: const TextStyle(
               color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -276,39 +254,14 @@ class _CityPopupScreenState extends State<CityPopupScreen>
             final city = filteredCities[index];
             final isSelected = selectedCity == city;
             
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+            return Container(
               decoration: BoxDecoration(
-                gradient: isSelected 
-                    ? LinearGradient(
-                        colors: [
-                          AppColors.primary.withOpacity(0.1),
-                          AppColors.primary.withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isSelected ? null : AppColors.surface,
-                borderRadius: BorderRadius.circular(AppSpacing.borderRadiusMedium),
-                border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.divider,
-                  width: isSelected ? 2 : 1,
+                border: Border(
+                  bottom: BorderSide(
+                    color: const Color(0xFFE0E0E0),
+                    width: 1,
+                  ),
                 ),
-                boxShadow: isSelected ? [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ] : [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
               child: Material(
                 color: Colors.transparent,
@@ -319,38 +272,25 @@ class _CityPopupScreenState extends State<CityPopupScreen>
                     });
                     _buttonController.forward();
                   },
-                  borderRadius: BorderRadius.circular(AppSpacing.borderRadiusMedium),
                   child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                     child: Row(
                       children: [
                         Expanded(
                           child: Text(
                             city,
-                            style: AppTextStyles.bodyLarge.copyWith(
-                              color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                         if (isSelected)
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '✓',
-                                style: TextStyle(
-                                  color: AppColors.surface,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                          const Icon(
+                            Icons.check,
+                            color: AppColors.textPrimary,
+                            size: 20,
                           ),
                       ],
                     ),
@@ -370,7 +310,12 @@ class _CityPopupScreenState extends State<CityPopupScreen>
       builder: (context, child) {
         return Container(
           width: double.infinity,
-          margin: const EdgeInsets.all(AppSpacing.lg),
+          margin: EdgeInsets.only(
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            top: 10,
+            bottom: MediaQuery.of(context).padding.bottom + AppSpacing.bottomSafeArea,
+          ),
           child: AnimatedOpacity(
             opacity: selectedCity != null ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 300),
@@ -378,22 +323,8 @@ class _CityPopupScreenState extends State<CityPopupScreen>
               duration: const Duration(milliseconds: 300),
               height: selectedCity != null ? 64 : 0,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primary,
-                    AppColors.primaryDark,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: const Color(0xFF606060),
                 borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
               ),
               child: Material(
                 color: Colors.transparent,
@@ -403,11 +334,13 @@ class _CityPopupScreenState extends State<CityPopupScreen>
                   child: Center(
                     child: Text(
                       'Подтвердить',
-                      style: AppTextStyles.button.copyWith(
-                        color: AppColors.surface,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        letterSpacing: 1.0,
+                      style: const TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 17,
+                        height: 22 / 17,
+                        letterSpacing: -0.41,
+                        color: Colors.white,
                       ),
                     ),
                   ),

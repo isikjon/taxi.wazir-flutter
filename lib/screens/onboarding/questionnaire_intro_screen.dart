@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../styles/app_colors.dart';
-import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
 import '../../widgets/logo_widget.dart';
 import 'city_selection_screen.dart';
@@ -116,18 +115,7 @@ class _QuestionnaireIntroScreenState extends State<QuestionnaireIntroScreen>
       opacity: _fadeAnimation,
       child: ScaleTransition(
         scale: _scaleAnimation,
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.1),
-              width: 1,
-            ),
-          ),
-          child: const LogoWidget(size: 100),
-        ),
+        child: const LogoWidget(size: 100),
       ),
     );
   }
@@ -137,31 +125,17 @@ class _QuestionnaireIntroScreenState extends State<QuestionnaireIntroScreen>
       opacity: _fadeAnimation,
       child: SlideTransition(
         position: _slideAnimation,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
+        child: Text(
+          'Заполните анкету',
+          style: const TextStyle(
+            fontFamily: 'Montserrat',
+            fontWeight: FontWeight.w600,
+            fontSize: 23,
+            height: 24 / 23,
+            letterSpacing: 0,
+            color: AppColors.textPrimary,
           ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary.withOpacity(0.1),
-                AppColors.primary.withOpacity(0.05),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(AppSpacing.borderRadiusMedium),
-          ),
-          child: Text(
-            'Заполнение анкеты',
-            style: AppTextStyles.h1.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-              letterSpacing: 0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
@@ -172,28 +146,17 @@ class _QuestionnaireIntroScreenState extends State<QuestionnaireIntroScreen>
       opacity: _fadeAnimation,
       child: SlideTransition(
         position: _slideAnimation,
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.borderRadiusMedium),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        child: Text(
+          'Выберите удобные для вас условия работы и укажите данные о себе. Начнем?',
+          style: const TextStyle(
+            fontFamily: 'Montserrat',
+            fontWeight: FontWeight.w500,
+            fontSize: 15,
+            height: 22 / 15,
+            letterSpacing: -0.43,
+            color: AppColors.textSecondary,
           ),
-          child: Text(
-            'Выберите удобные для вас условия работы и укажите данные о себе. Начнем?',
-            style: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.6,
-              letterSpacing: 0.2,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
@@ -207,42 +170,26 @@ class _QuestionnaireIntroScreenState extends State<QuestionnaireIntroScreen>
         child: Container(
           height: 64,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary,
-                AppColors.primaryDark,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: const Color(0xFF606060),
             borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: () => _navigateToCitySelection(context),
               borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
-                ),
-                child: Center(
-                  child: Text(
-                    'Начать',
-                    style: AppTextStyles.button.copyWith(
-                      color: AppColors.surface,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                      letterSpacing: 1.0,
-                    ),
+              child: Center(
+                child: Text(
+                  'Начать',
+                  style: const TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 17,
+                    height: 22 / 17,
+                    letterSpacing: -0.41,
+                    color: Colors.white,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),

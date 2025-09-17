@@ -4,6 +4,7 @@ import '../../styles/app_colors.dart';
 import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
 import '../../widgets/logo_widget.dart';
+import '../../services/user_data_service.dart';
 import 'sms_verification_screen.dart';
 
 class PhoneNumberFormatter extends TextInputFormatter {
@@ -86,8 +87,12 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
       _isLoading = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () async {
       if (mounted) {
+        // Сохраняем номер телефона
+        final fullPhoneNumber = '+996${_phoneController.text}';
+        await UserDataService.instance.savePhoneNumber(fullPhoneNumber);
+        
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => SmsVerificationScreen(
@@ -106,27 +111,38 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: AppSpacing.xxl),
-              _buildLogo(),
-              const SizedBox(height: AppSpacing.xxl),
-              _buildTitle(),
-              const SizedBox(height: AppSpacing.lg),
-              _buildRoleSelector(),
-              const SizedBox(height: AppSpacing.lg),
-              _buildPhoneInput(),
-              const SizedBox(height: AppSpacing.lg),
-              _buildContinueButton(),
-              const Spacer(),
-              _buildLegalText(),
-              const SizedBox(height: AppSpacing.md),
-              _buildFooter(),
-            ],
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildLogo(),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildTitle(),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildRoleSelector(),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildPhoneInput(),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildContinueButton(),
+                  const Spacer(),
+                  _buildLegalText(),
+                  const SizedBox(height: AppSpacing.md),
+                  _buildFooter(),
+                  const SizedBox(height: 10),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + AppSpacing.bottomPadding),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -153,7 +169,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
       height: 48,
       decoration: BoxDecoration(
         color: AppColors.background,
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: const Color(0xFFCECECE)),
         borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
       ),
       child: const Center(
@@ -173,7 +189,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
     return Container(
       height: 48,
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: const Color(0xFFCECECE)),
         borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
       ),
       child: Row(
@@ -194,13 +210,13 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: 5),
           const Icon(
             Icons.keyboard_arrow_down,
             color: AppColors.textSecondary,
             size: 20,
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: 0),
           Expanded(
             child: TextFormField(
               controller: _phoneController,
@@ -208,15 +224,20 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
               inputFormatters: [
                 PhoneNumberFormatter(),
               ],
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              // style: AppTextStyles.bodyLarge.copyWith(
+              //   color: AppColors.textPrimary,
+              // ),
               decoration: const InputDecoration(
-                border: InputBorder.none,
                 hintText: '700 123 45 67',
                 hintStyle: TextStyle(
                   color: AppColors.textHint,
                 ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
               ),
             ),
           ),

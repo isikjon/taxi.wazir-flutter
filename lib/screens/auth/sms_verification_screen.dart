@@ -5,8 +5,11 @@ import '../../styles/app_colors.dart';
 import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
 import '../../services/auth_service.dart';
+import '../../services/api_service.dart';
 import '../../widgets/logo_widget.dart';
 import '../onboarding/questionnaire_intro_screen.dart';
+import '../main/main_app_screen.dart';
+import 'phone_auth_screen.dart';
 
 class SmsVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -38,6 +41,7 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
   void initState() {
     super.initState();
     _startTimer();
+    _sendSmsCode();
   }
 
   @override
@@ -82,16 +86,39 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
 
   void _checkCode() async {
     final code = _controllers.map((c) => c.text).join();
-    if (code == '1111') {
+    if (code.length == 4) {
       try {
-        await AuthService.login(widget.phoneNumber, 'password');
-        if (mounted) {
-          // Временно всегда показываем анкетирование для тестирования
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const QuestionnaireIntroScreen(),
-            ),
-          );
+        final fullPhoneNumber = '+996${widget.phoneNumber}';
+        final response = await AuthService.login(fullPhoneNumber, code);
+        
+        if (response['success'] && mounted) {
+          if (response['isNewUser']) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => const QuestionnaireIntroScreen(),
+              ),
+              (route) => false,
+            );
+          } else {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => const MainAppScreen(),
+              ),
+              (route) => false,
+            );
+          }
+        } else if (mounted) {
+          // Проверяем специальные случаи блокировки и удаления
+          if (response['error'] == 'blocked' || response['error'] == 'deleted') {
+            _showBlockedDialog(response['message'] ?? 'Ваш аккаунт заблокирован. Для связи: +996 559 868 878');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['error'] ?? 'Ошибка авторизации'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -106,10 +133,35 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Неверный код'),
+          content: Text('Введите полный код'),
           backgroundColor: AppColors.error,
         ),
       );
+    }
+  }
+
+  void _sendSmsCode() async {
+    try {
+      final fullPhoneNumber = '+996${widget.phoneNumber}';
+      final response = await ApiService.instance.sendSmsCode(fullPhoneNumber);
+      
+      if (!response['success'] && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['error'] ?? 'Ошибка отправки SMS'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка отправки SMS: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -120,7 +172,97 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
         _canResend = false;
       });
       _startTimer();
+      _sendSmsCode();
     }
+  }
+
+  void _showBlockedDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.block,
+                color: AppColors.error,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Доступ ограничен',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.phone,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '+996 559 868 878',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const PhoneAuthScreen(),
+                  ),
+                  (route) => false,
+                );
+              },
+              child: Text(
+                'Понятно',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _formatPhoneNumber(String phoneNumber) {
@@ -147,22 +289,31 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: AppSpacing.xxl),
-              _buildLogo(),
-              const SizedBox(height: AppSpacing.xxl),
-              _buildTitle(),
-              const SizedBox(height: AppSpacing.xxl),
-              _buildCodeInputs(),
-              const SizedBox(height: AppSpacing.lg),
-              _buildResendButton(),
-              const Spacer(),
-            ],
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - (AppSpacing.lg * 2),
+            ),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildLogo(),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildTitle(),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _buildCodeInputs(),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildResendButton(),
+                  const Spacer(),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -186,7 +337,7 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'на номер ${_formatPhoneNumber(widget.phoneNumber)}',
+          'на номер +996 ${_formatPhoneNumber(widget.phoneNumber)}',
           style: AppTextStyles.h3.copyWith(
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
@@ -219,20 +370,20 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
             decoration: InputDecoration(
               border: UnderlineInputBorder(
                 borderSide: BorderSide(
-                  color: AppColors.primaryWithOpacity,
-                  width: 2,
+                  color: const Color(0xFFCECECE),
+                  width: 1,
                 ),
               ),
               enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(
-                  color: AppColors.primaryWithOpacity,
-                  width: 2,
+                  color: const Color(0xFFCECECE),
+                  width: 1,
                 ),
               ),
               focusedBorder: UnderlineInputBorder(
                 borderSide: BorderSide(
-                  color: AppColors.primary,
-                  width: 2,
+                  color: const Color(0xFFCECECE).withOpacity(0.8),
+                  width: 1,
                 ),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.md),

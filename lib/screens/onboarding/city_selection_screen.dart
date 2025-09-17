@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../styles/app_colors.dart';
-import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
+import '../../services/user_data_service.dart';
 import 'city_popup_screen.dart';
+import 'city_info_screen.dart';
 
 class CitySelectionScreen extends StatefulWidget {
   const CitySelectionScreen({super.key});
@@ -109,25 +110,22 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
     return AppBar(
       backgroundColor: AppColors.background,
       elevation: 0,
-      leading: Container(
-        margin: const EdgeInsets.all(AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
+      leading: IconButton(
+        icon: const Icon(
+          Icons.arrow_back_ios,
+          color: AppColors.textPrimary,
+          size: 20,
         ),
-        child: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: AppColors.primary,
-            size: 20,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
         'Заполните анкету',
-        style: AppTextStyles.h2.copyWith(
-          fontWeight: FontWeight.bold,
+        style: const TextStyle(
+          fontFamily: 'Montserrat',
+          fontWeight: FontWeight.w600,
+          fontSize: 23,
+          height: 24 / 23,
+          letterSpacing: 0,
           color: AppColors.textPrimary,
         ),
       ),
@@ -140,27 +138,13 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
       opacity: _fadeAnimation,
       child: SlideTransition(
         position: _slideAnimation,
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildAnimatedStep(1, 'Про вас', isActive: true),
-              _buildAnimatedStep(2, 'Про авто', isActive: false),
-              _buildAnimatedStep(3, 'Условия', isActive: false),
-            ],
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildAnimatedStep(1, 'Про вас', isActive: true),
+            _buildAnimatedStep(2, 'Про авто', isActive: false),
+            _buildAnimatedStep(3, 'Условия', isActive: false),
+          ],
         ),
       ),
     );
@@ -176,31 +160,14 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                gradient: isActive 
-                    ? LinearGradient(
-                        colors: [
-                          AppColors.primary,
-                          AppColors.primaryDark,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isActive ? null : AppColors.divider,
+                color: isActive ? AppColors.textPrimary : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
-                boxShadow: isActive ? [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ] : null,
               ),
               child: Center(
                 child: Text(
                   number.toString(),
                   style: TextStyle(
-                    color: isActive ? AppColors.surface : AppColors.textSecondary,
+                    color: isActive ? Colors.white : AppColors.textSecondary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -210,9 +177,10 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
             const SizedBox(height: AppSpacing.sm),
             Text(
               title,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -229,21 +197,15 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
-              ),
-              child: Text(
-                'Укажите город',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+            Text(
+              'Укажите город',
+              style: const TextStyle(
+                fontFamily: 'Montserrat',
+                fontWeight: FontWeight.w500,
+                fontSize: 15,
+                height: 22 / 15,
+                letterSpacing: -0.43,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -253,53 +215,33 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
                 height: 64,
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(
-                    color: selectedCity != null 
-                        ? AppColors.primary 
-                        : AppColors.divider,
-                    width: selectedCity != null ? 2 : 1,
-                  ),
-                  borderRadius: BorderRadius.circular(AppSpacing.borderRadiusMedium),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: const Color(0xFFCECECE),
+                      width: 1,
                     ),
-                  ],
+                  ),
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
                         selectedCity ?? 'В каком городе вы хотите работать',
-                        style: AppTextStyles.bodyLarge.copyWith(
+                        style: TextStyle(
                           color: selectedCity != null 
                               ? AppColors.textPrimary 
-                              : AppColors.textHint,
-                          fontWeight: selectedCity != null 
-                              ? FontWeight.w600 
-                              : FontWeight.normal,
+                              : AppColors.textSecondary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '>',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                    Text(
+                      '>',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -339,6 +281,33 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
       setState(() {
         selectedCity = result;
       });
+      
+      // Сохраняем данные города
+      await UserDataService.instance.saveCityData(result);
+      
+      // Navigate to city info screen
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => CityInfoScreen(selectedCity: result),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOutCubic;
+
+            var tween = Tween(begin: begin, end: end).chain(
+              CurveTween(curve: curve),
+            );
+
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
+      );
     }
   }
 }
+
+
