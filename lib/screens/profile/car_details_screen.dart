@@ -92,7 +92,7 @@ class _CarDetailsScreenState extends State<CarDetailsScreen> {
               'Основная машина',
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF999999),
+                color: AppColors.primaryWithOpacity60,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -124,7 +124,7 @@ class _CarDetailsScreenState extends State<CarDetailsScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFE0E0E0),
+            color: AppColors.primaryWithOpacity20,
             width: 0.5,
           ),
         ),

@@ -61,15 +61,17 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildContent(),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildContent(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -186,7 +188,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFCECECE),
+            color: AppColors.primaryWithOpacity30,
             width: 1,
           ),
         ),

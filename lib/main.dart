@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:dgis_mobile_sdk_full/dgis.dart' as sdk;
 import 'services/auth_service.dart';
 import 'styles/app_theme.dart';
 import 'screens/auth/phone_auth_screen.dart';
 import 'screens/main/main_app_screen.dart';
 
+late sdk.Context sdkContext;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    sdkContext = await sdk.DGis.initialize();
+    print('2GIS SDK инициализирован успешно');
+  } catch (e) {
+    print('Ошибка инициализации 2GIS SDK: $e');
+    rethrow;
+  }
   
   runApp(const TaxiApp());
 }
@@ -16,7 +27,7 @@ class TaxiApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Водитель Такси',
+      title: 'Eco Такси',
       theme: AppTheme.lightTheme,
       home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,

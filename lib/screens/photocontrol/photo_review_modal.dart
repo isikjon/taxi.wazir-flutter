@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import '../../styles/app_colors.dart';
 import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
 import '../../services/photo_storage_service.dart';
@@ -74,7 +75,7 @@ class _PhotoReviewModalState extends State<PhotoReviewModal> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFE0E0E0),
+            color: AppColors.primaryWithOpacity20,
             width: 1,
           ),
         ),
@@ -257,7 +258,7 @@ class _PhotoReviewModalState extends State<PhotoReviewModal> {
       decoration: const BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: Color(0xFFE0E0E0),
+            color: AppColors.primaryWithOpacity20,
             width: 1,
           ),
         ),

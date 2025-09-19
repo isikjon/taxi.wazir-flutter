@@ -139,7 +139,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFCECECE), // Измененный цвет границы
+            color: AppColors.primaryWithOpacity30, // Измененный цвет границы
             width: 0.5,
           ),
         ),
@@ -150,7 +150,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
           width: 25,
           height: 25,
           decoration: const BoxDecoration(
-            color: Color(0xFFD9D9D9), // Серый цвет как в требованиях
+            color: AppColors.primaryWithOpacity20, // Зеленый цвет как в требованиях
             shape: BoxShape.circle,
           ),
         ),

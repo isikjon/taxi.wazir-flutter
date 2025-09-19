@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import '../styles/app_colors.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
@@ -223,7 +224,7 @@ class PhotoVerificationService {
       case 'rejected':
         return const Color(0xFFF44336);
       default:
-        return const Color(0xFF9E9E9E);
+        return AppColors.primaryWithOpacity60;
     }
   }
 }

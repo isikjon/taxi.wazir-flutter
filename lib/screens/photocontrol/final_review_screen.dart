@@ -41,34 +41,7 @@ class _FinalReviewScreenState extends State<FinalReviewScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.only(
-                top: 20,
-                left: AppSpacing.md,
-                right: AppSpacing.md,
-                bottom: AppSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
-                      color: AppColors.textPrimary,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              'Проверка документов',
-              style: AppTextStyles.h3,
-            ),
-          ),
-                ],
-              ),
-            ),
+            _buildHeader(context),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -118,8 +91,13 @@ class _FinalReviewScreenState extends State<FinalReviewScreen> {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+            Container(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
               child: CustomButton(
                 text: _isLoading ? 'Отправка...' : 'Отправить на проверку',
                 onPressed: _isLoading ? null : _submitForVerification,
@@ -127,6 +105,37 @@ class _FinalReviewScreenState extends State<FinalReviewScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(
+        top: 20,
+        left: AppSpacing.md,
+        right: AppSpacing.md,
+        bottom: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: AppColors.textPrimary,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Проверка документов',
+              style: AppTextStyles.h3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -157,7 +166,7 @@ class _FinalReviewScreenState extends State<FinalReviewScreen> {
             height: 60,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
-              border: Border.all(color: const Color(0xFFE0E0E0)),
+              border: Border.all(color: AppColors.primaryWithOpacity20),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
@@ -167,10 +176,10 @@ class _FinalReviewScreenState extends State<FinalReviewScreen> {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Colors.grey[300],
+                          color: AppColors.primaryWithOpacity10,
                           child: const Icon(
                             Icons.photo,
-                            color: Colors.grey,
+                            color: const Color(0xFF264b47),
                             size: 20,
                           ),
                         );
@@ -181,10 +190,10 @@ class _FinalReviewScreenState extends State<FinalReviewScreen> {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Colors.grey[300],
+                          color: AppColors.primaryWithOpacity10,
                           child: const Icon(
                             Icons.photo,
-                            color: Colors.grey,
+                            color: const Color(0xFF264b47),
                             size: 20,
                           ),
                         );

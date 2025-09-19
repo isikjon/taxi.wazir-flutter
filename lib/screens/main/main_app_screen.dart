@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/app_colors.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../../services/balance_service.dart';
@@ -15,7 +16,11 @@ import '../photocontrol/photocontrol_screen.dart';
 import '../streethail/street_hail_screen.dart';
 import '../tips/useful_tips_screen.dart';
 import '../navigation/navigation_screen.dart';
+import '../navigation/order_notification_screen.dart';
 import '../../services/diagnostics_service.dart';
+import '../../services/websocket_service.dart';
+import '../../services/order_service.dart';
+import '../../models/order_model.dart';
 
 class MainAppScreen extends StatefulWidget {
   const MainAppScreen({super.key});
@@ -23,6 +28,7 @@ class MainAppScreen extends StatefulWidget {
   @override
   State<MainAppScreen> createState() => _MainAppScreenState();
 }
+
 
 class _MainAppScreenState extends State<MainAppScreen> {
   @override
@@ -37,6 +43,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       ),
     );
   }
+
 }
 
 class HomeScreen extends StatefulWidget {
@@ -48,6 +55,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
+  final WebSocketService _webSocketService = WebSocketService();
+  final OrderService _orderService = OrderService();
+  int? _currentDriverId;
+  int? _currentTaxiparkId;
   Map<String, dynamic>? _driverData;
   BalanceData? _balanceData;
   Map<String, dynamic>? _taxiparkData;
@@ -60,6 +71,78 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadDriverData();
+    _initializeWebSocket();
+  }
+
+  Future<void> _initializeWebSocket() async {
+    try {
+      final driverData = await AuthService.getCurrentDriver();
+      if (driverData != null) {
+        _currentDriverId = driverData['id'];
+        _currentTaxiparkId = driverData['taxiparkId'];
+        
+        if (_currentDriverId != null && _currentTaxiparkId != null) {
+          await _webSocketService.connect(_currentDriverId.toString(), _currentTaxiparkId!);
+          _webSocketService.orderStream.listen(_handleNewOrder);
+        }
+      }
+    } catch (e) {
+      print('WebSocket initialization error: $e');
+    }
+  }
+
+  void _handleNewOrder(OrderModel order) {
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => OrderNotificationScreen(
+        order: order,
+        onAccept: () {
+          Navigator.of(context).pop();
+          _acceptOrder(order);
+        },
+        onDecline: () {
+          Navigator.of(context).pop();
+          _declineOrder(order);
+        },
+      ),
+    );
+  }
+
+  Future<void> _acceptOrder(OrderModel order) async {
+    try {
+      await _orderService.acceptOrder(order.id, _currentDriverId!);
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => NavigationScreen(
+              order: order,
+              driverId: _currentDriverId!,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка принятия заказа: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _declineOrder(OrderModel order) async {
+    try {
+      await _orderService.cancelOrder(order.id, _currentDriverId!);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка отклонения заказа: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _loadDriverData() async {
@@ -191,47 +274,26 @@ class _HomeScreenState extends State<HomeScreen> {
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Активность
-          Column(
-            children: [
-              const Text(
-                '39',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Активность',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
           // Профиль
           Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: AppColors.primaryWithOpacity10,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.grey[400]!,
+                    color: const Color(0xFF264b47),
                     width: 2,
                   ),
                 ),
                 child: Icon(
                   Icons.person,
-                  color: Colors.grey[600],
+                  color: const Color(0xFF264b47),
                   size: 35,
                 ),
               ),
@@ -249,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 '$carModel, $carNumber',
                 style: const TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF999999),
+                  color: AppColors.primaryWithOpacity60,
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -258,13 +320,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 taxiparkName,
                 style: const TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF666666),
+                  color: const Color(0xFF264b47),
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
-            
           ),
+          const Spacer(),
           // Рейтинг
           Column(
             children: [
@@ -301,8 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
-          top: BorderSide(color: Color(0xFFCBCBCB), width: 1),
-          bottom: BorderSide(color: Color(0xFFCBCBCB), width: 1),
+          top: BorderSide(color: AppColors.primaryWithOpacity30, width: 1),
+          bottom: BorderSide(color: AppColors.primaryWithOpacity30, width: 1),
         ),
       ),
       child: Column(
@@ -312,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: const BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Color(0xFFCBCBCB), width: 1),
+                bottom: BorderSide(color: AppColors.primaryWithOpacity30, width: 1),
               ),
             ),
             child: Row(
@@ -354,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: const BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Color(0xFFCBCBCB), width: 1),
+                bottom: BorderSide(color: AppColors.primaryWithOpacity30, width: 1),
               ),
             ),
             child: Row(
@@ -373,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF424242) : Colors.transparent,
+                      color: isSelected ? const Color(0xFF264b47) : Colors.transparent,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Center(
@@ -409,7 +471,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   '${_balanceData?.totalOrders ?? 0} заказов',
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF999999),
+                    color: AppColors.primaryWithOpacity60,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -419,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     : 'Всего заказов выполнено',
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF999999),
+                    color: AppColors.primaryWithOpacity60,
                   ),
                 ),
               ],
@@ -452,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFE5E5E5),
+            color: AppColors.primaryWithOpacity20,
             width: 0.5,
           ),
         ),
@@ -509,7 +571,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }),
           Container(
             height: 8,
-            color: const Color(0xFFF5F5F5),
+            color: AppColors.primaryWithOpacity05,
           ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -581,9 +643,30 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }),
         _buildMenuRow('Выполнить тестовый заказ', null, onTap: () {
+            final testOrder = OrderModel(
+              id: 999,
+              orderNumber: 'TEST-001',
+              clientName: 'Тестовый клиент',
+              clientPhone: '+7900000000',
+              pickupAddress: 'Тестовый адрес А',
+              pickupLatitude: 55.751244,
+              pickupLongitude: 37.617494,
+              destinationAddress: 'Тестовый адрес Б',
+              destinationLatitude: 55.761244,
+              destinationLongitude: 37.627494,
+              price: 500.0,
+              status: 'accepted',
+              taxiparkId: _currentTaxiparkId ?? 1,
+              driverId: _currentDriverId,
+              createdAt: DateTime.now(),
+              notes: 'Тестовый заказ для проверки навигации',
+            );
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => const NavigationScreen(),
+                builder: (context) => NavigationScreen(
+                  order: testOrder,
+                  driverId: _currentDriverId ?? 1,
+                ),
               ),
             );
         }),
@@ -598,7 +681,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFE0E0E0),
+            color: AppColors.primaryWithOpacity20,
             width: 0.5,
           ),
         ),
@@ -614,12 +697,12 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 30,
               height: 30,
               decoration: const BoxDecoration(
-                color: Color(0xFFE5E5E5),
+                color: AppColors.primaryWithOpacity20,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.circle,
-                color: Color(0xFFBBBBBB),
+                color: const Color(0xFF264b47),
                 size: 16,
               ),
             ),
@@ -768,7 +851,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFE0E0E0),
+            color: AppColors.primaryWithOpacity20,
             width: 0.5,
           ),
         ),
@@ -830,14 +913,35 @@ class _HomeScreenState extends State<HomeScreen> {
         height: 50,
         child: ElevatedButton(
           onPressed: () {
+            final testOrder = OrderModel(
+              id: 998,
+              orderNumber: 'TEST-002',
+              clientName: 'Тестовый клиент 2',
+              clientPhone: '+7900000001',
+              pickupAddress: 'Тестовый адрес А',
+              pickupLatitude: 55.751244,
+              pickupLongitude: 37.617494,
+              destinationAddress: 'Тестовый адрес Б',
+              destinationLatitude: 55.761244,
+              destinationLongitude: 37.627494,
+              price: 600.0,
+              status: 'accepted',
+              taxiparkId: _currentTaxiparkId ?? 1,
+              driverId: _currentDriverId,
+              createdAt: DateTime.now(),
+              notes: 'Тестовый заказ 2',
+            );
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => const NavigationScreen(),
+                builder: (context) => NavigationScreen(
+                  order: testOrder,
+                  driverId: _currentDriverId ?? 1,
+                ),
               ),
             );
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF666666),
+            backgroundColor: const Color(0xFF264b47),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

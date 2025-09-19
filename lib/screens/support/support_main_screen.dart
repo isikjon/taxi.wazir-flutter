@@ -18,15 +18,17 @@ class SupportMainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          _buildWriteToSupport(context),
-          const Divider(height: 1, color: AppColors.divider),
-          Expanded(
-            child: _buildPopularQuestions(context),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            _buildWriteToSupport(context),
+            const Divider(height: 1, color: AppColors.divider),
+            Expanded(
+              child: _buildPopularQuestions(context),
+            ),
+          ],
+        ),
       ),
     );
   }

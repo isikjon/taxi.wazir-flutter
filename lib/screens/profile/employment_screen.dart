@@ -131,7 +131,7 @@ class _EmploymentScreenState extends State<EmploymentScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFE0E0E0),
+            color: AppColors.primaryWithOpacity20,
             width: 0.5,
           ),
         ),
@@ -161,7 +161,7 @@ class _EmploymentScreenState extends State<EmploymentScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFE0E0E0),
+            color: AppColors.primaryWithOpacity20,
             width: 0.5,
           ),
         ),

@@ -11,28 +11,37 @@ class VuMainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTitle(),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildDescription(),
-                  const Spacer(),
-                  _buildDocumentPreview(),
-                  const Spacer(),
-                  _buildStartButton(context),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTitle(),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildDescription(),
+                    const Spacer(),
+                    _buildDocumentPreview(),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.md,
+                        AppSpacing.lg,
+                        AppSpacing.lg,
+                      ),
+                      child: _buildStartButton(context),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -98,17 +107,17 @@ class VuMainScreen extends StatelessWidget {
             width: 200,
             height: 120,
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F0F0),
+              color: AppColors.primaryWithOpacity05,
               borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
               border: Border.all(
-                color: const Color(0xFFE0E0E0),
+                color: AppColors.primaryWithOpacity20,
                 width: 2,
               ),
             ),
             child: const Icon(
               Icons.image_outlined,
               size: 60,
-              color: Color(0xFFBBBBBB),
+              color: const Color(0xFF264b47),
             ),
           ),
           const SizedBox(height: AppSpacing.md),

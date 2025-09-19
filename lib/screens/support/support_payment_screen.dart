@@ -11,36 +11,38 @@ class SupportPaymentScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-            Text(
-              'Пришлите нам подробности, и мы поможем разобраться:',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Пришлите нам подробности, и мы поможем разобраться:',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildBulletList([
+                      'Название компании, которая задерживает выплату',
+                      'Заключён ли у вас с ним договор?',
+                      'Когда вам платили последний раз?',
+                      'Какую сумму вы хотите вывести?',
+                    ]),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildCallButton(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            _buildBulletList([
-              'Название компании, которая задерживает выплату',
-              'Заключён ли у вас с ним договор?',
-              'Когда вам платили последний раз?',
-              'Какую сумму вы хотите вывести?',
-            ]),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _buildCallButton(),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

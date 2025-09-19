@@ -39,36 +39,38 @@ class _PhotocontrolScreenState extends State<PhotocontrolScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle(),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildPhotocontrolItem(
-                    'Фотоконтроль в/у',
-                    _verificationService.getStatusText(_verificationStatus),
-                    _verificationService.getStatusColor(_verificationStatus),
-                    () => _handleVuTap(),
-                  ),
-                  _buildPhotocontrolItem(
-                    'Фотоконтроль СТС',
-                    _verificationService.getStatusText(_verificationStatus),
-                    _verificationService.getStatusColor(_verificationStatus),
-                    () => _handleStsTap(),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  _buildStartVerificationButton(context),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildPhotocontrolItem(
+                      'Фотоконтроль в/у',
+                      _verificationService.getStatusText(_verificationStatus),
+                      _verificationService.getStatusColor(_verificationStatus),
+                      () => _handleVuTap(),
+                    ),
+                    _buildPhotocontrolItem(
+                      'Фотоконтроль СТС',
+                      _verificationService.getStatusText(_verificationStatus),
+                      _verificationService.getStatusColor(_verificationStatus),
+                      () => _handleStsTap(),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildStartVerificationButton(context),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -122,7 +124,7 @@ class _PhotocontrolScreenState extends State<PhotocontrolScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFCECECE),
+            color: AppColors.primaryWithOpacity30,
             width: 1,
           ),
         ),

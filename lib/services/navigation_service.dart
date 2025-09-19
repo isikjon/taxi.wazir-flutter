@@ -1,174 +1,182 @@
-import 'dart:convert';
-import 'dart:math';
-import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
-import '../config/api_config.dart';
+import 'dart:async';
+import '../models/order_model.dart';
+import '../models/location_model.dart';
+import 'order_service.dart';
+import 'websocket_service.dart';
 
 class NavigationService {
   static final NavigationService _instance = NavigationService._internal();
   factory NavigationService() => _instance;
   NavigationService._internal();
 
-  static const String _directionsApiUrl = 'https://maps.googleapis.com/maps/api/directions/json';
-  
-  /// Получить текущее местоположение пользователя
-  Future<Position> getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Службы геолокации отключены');
-    }
+  dynamic _navigationManager;
+  dynamic _trafficRouter;
+  dynamic _locationService;
+  dynamic _map;
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Разрешение на геолокацию отклонено');
-      }
-    }
+  OrderModel? _currentOrder;
+  String _currentStatus = 'idle';
+  LocationModel? _currentLocation;
+  LocationModel? _pointA;
+  LocationModel? _pointB;
 
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception('Разрешение на геолокацию отклонено навсегда');
-    }
+  final StreamController<String> _statusController = StreamController<String>.broadcast();
+  final StreamController<LocationModel> _locationController = StreamController<LocationModel>.broadcast();
 
-    return await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-  }
+  Stream<String> get statusStream => _statusController.stream;
+  Stream<LocationModel> get locationStream => _locationController.stream;
 
-  /// Создать случайную точку назначения в радиусе 50 метров
-  Map<String, double> generateRandomDestination(double currentLat, double currentLng) {
-    final random = Random();
-    
-    // 50 метров в градусах (приблизительно)
-    const double radiusInDegrees = 0.00045; // ~50 метров
-    
-    // Генерируем случайный угол и расстояние
-    final double angle = random.nextDouble() * 2 * pi;
-    final double distance = random.nextDouble() * radiusInDegrees;
-    
-    // Вычисляем новые координаты
-    final double destLat = currentLat + (distance * cos(angle));
-    final double destLng = currentLng + (distance * sin(angle));
-    
-    return {
-      'latitude': destLat,
-      'longitude': destLng,
-    };
-  }
+  String get currentStatus => _currentStatus;
+  OrderModel? get currentOrder => _currentOrder;
 
-  /// Построить маршрут от текущего местоположения до случайной точки
-  Future<Map<String, dynamic>> buildRoute(Position currentPosition) async {
+  void initialize(dynamic map) {
+    _map = map;
     try {
-      // Генерируем случайную точку назначения
-      final destination = generateRandomDestination(
-        currentPosition.latitude, 
-        currentPosition.longitude,
-      );
-
-      // Строим маршрут через Google Directions API
-      final String url = '$_directionsApiUrl?'
-          'origin=${currentPosition.latitude},${currentPosition.longitude}&'
-          'destination=${destination['latitude']},${destination['longitude']}&'
-          'mode=driving&'
-          'key=${ApiConfig.googleMapsApiKey}';
-
-      final response = await http.get(Uri.parse(url));
-      
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        
-        if (data['status'] == 'OK' && data['routes'].isNotEmpty) {
-          final route = data['routes'][0];
-          final leg = route['legs'][0];
-          
-          return {
-            'success': true,
-            'route': route,
-            'distance': leg['distance']['text'],
-            'duration': leg['duration']['text'],
-            'distanceValue': leg['distance']['value'], // в метрах
-            'durationValue': leg['duration']['value'], // в секундах
-            'polyline': route['overview_polyline']['points'],
-            'startLocation': {
-              'lat': currentPosition.latitude,
-              'lng': currentPosition.longitude,
-            },
-            'endLocation': {
-              'lat': destination['latitude']!,
-              'lng': destination['longitude']!,
-            },
-            'steps': leg['steps'],
-          };
-        } else {
-          throw Exception('Не удалось построить маршрут: ${data['status']}');
-        }
-      } else {
-        throw Exception('Ошибка API: ${response.statusCode}');
-      }
+      _navigationManager = null;
+      _trafficRouter = null;
+      _locationService = null;
+      _startLocationTracking();
     } catch (e) {
-      return {
-        'success': false,
-        'error': e.toString(),
-      };
+      print('Navigation initialization error: $e');
     }
   }
 
-  /// Декодировать polyline из Google Maps
-  List<Map<String, double>> decodePolyline(String polyline) {
-    List<Map<String, double>> coordinates = [];
-    int index = 0;
-    int len = polyline.length;
-    int lat = 0;
-    int lng = 0;
+  void _startLocationTracking() {
+    Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_currentOrder != null) {
+        _checkArrival();
+      }
+    });
+  }
 
-    while (index < len) {
-      int b;
-      int shift = 0;
-      int result = 0;
+  void _checkArrival() {
+    if (_currentLocation == null || _currentOrder == null) return;
 
-      do {
-        b = polyline.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-
-      do {
-        b = polyline.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-
-      coordinates.add({
-        'latitude': lat / 1E5,
-        'longitude': lng / 1E5,
-      });
+    if (_currentStatus == 'navigating_to_a' && _pointA != null) {
+      if (_currentLocation!.isNear(_pointA!, 1.0)) {
+        _onArrivedAtA();
+      }
+    } else if (_currentStatus == 'navigating_to_b' && _pointB != null) {
+      if (_currentLocation!.isNear(_pointB!, 1.0)) {
+        _onArrivedAtB();
+      }
     }
-
-    return coordinates;
   }
 
-  /// Вычислить расстояние между двумя точками
-  double calculateDistance(double lat1, double lng1, double lat2, double lng2) {
-    return Geolocator.distanceBetween(lat1, lng1, lat2, lng2);
-  }
-
-  /// Проверить, находится ли пользователь в пункте назначения (в радиусе 10 метров)
-  bool isAtDestination(Position currentPosition, Map<String, double> destination) {
-    final distance = calculateDistance(
-      currentPosition.latitude,
-      currentPosition.longitude,
-      destination['latitude']!,
-      destination['longitude']!,
+  Future<void> startNavigation(OrderModel order, int driverId) async {
+    _currentOrder = order;
+    _pointA = LocationModel(
+      latitude: order.pickupLatitude!,
+      longitude: order.pickupLongitude!,
+      timestamp: DateTime.now(),
     );
-    return distance <= 10.0; // 10 метров
+    _pointB = LocationModel(
+      latitude: order.destinationLatitude!,
+      longitude: order.destinationLongitude!,
+      timestamp: DateTime.now(),
+    );
+
+    await _buildRouteToA();
+    await _startNavigationToA(driverId);
+  }
+
+  Future<void> _buildRouteToA() async {
+    print('Building route to point A');
+  }
+
+  Future<void> _buildRouteToB() async {
+    print('Building route to point B');
+  }
+
+  Future<void> _startNavigationToA(int driverId) async {
+    _currentStatus = 'navigating_to_a';
+    if (!_statusController.isClosed) {
+      _statusController.add(_currentStatus);
+    }
+    
+    if (_currentOrder != null) {
+      await OrderService().startNavigationToA(_currentOrder!.id, driverId);
+      await WebSocketService().sendOrderStatus(_currentOrder!.id, 'navigating_to_a');
+    }
+  }
+
+  Future<void> _onArrivedAtA() async {
+    if (_currentOrder == null) return;
+
+    _currentStatus = 'arrived_at_a';
+    if (!_statusController.isClosed) {
+      _statusController.add(_currentStatus);
+    }
+    
+    await OrderService().arrivedAtA(_currentOrder!.id, _currentOrder!.driverId!);
+    await WebSocketService().sendOrderStatus(_currentOrder!.id, 'arrived_at_a');
+
+    await Future.delayed(const Duration(seconds: 2));
+    await _startNavigationToB();
+  }
+
+  Future<void> _startNavigationToB() async {
+    if (_currentOrder == null) return;
+
+    await _buildRouteToB();
+    
+    _currentStatus = 'navigating_to_b';
+    if (!_statusController.isClosed) {
+      _statusController.add(_currentStatus);
+    }
+    
+    await OrderService().startNavigationToB(_currentOrder!.id, _currentOrder!.driverId!);
+    await WebSocketService().sendOrderStatus(_currentOrder!.id, 'navigating_to_b');
+  }
+
+  Future<void> _onArrivedAtB() async {
+    if (_currentOrder == null) return;
+
+    _currentStatus = 'completed';
+    if (!_statusController.isClosed) {
+      _statusController.add(_currentStatus);
+    }
+    
+    await OrderService().completeOrder(_currentOrder!.id, _currentOrder!.driverId!);
+    await WebSocketService().sendOrderStatus(_currentOrder!.id, 'completed');
+
+    _stopNavigation();
+  }
+
+  Future<void> cancelNavigation(int driverId) async {
+    if (_currentOrder != null) {
+      await OrderService().cancelOrder(_currentOrder!.id, driverId);
+      await WebSocketService().sendOrderStatus(_currentOrder!.id, 'cancelled');
+    }
+    
+    _stopNavigation();
+  }
+
+  Future<void> cancelCurrentOrder() async {
+    if (_currentOrder != null && _currentOrder!.driverId != null) {
+      await cancelNavigation(_currentOrder!.driverId!);
+    } else {
+      _stopNavigation();
+    }
+  }
+
+  void _stopNavigation() {
+    _currentOrder = null;
+    _currentStatus = 'idle';
+    _pointA = null;
+    _pointB = null;
+    if (!_statusController.isClosed) {
+      _statusController.add(_currentStatus);
+    }
+  }
+
+  void dispose() {
+    if (!_statusController.isClosed) {
+      _statusController.close();
+    }
+    if (!_locationController.isClosed) {
+      _locationController.close();
+    }
+    _stopNavigation();
   }
 }

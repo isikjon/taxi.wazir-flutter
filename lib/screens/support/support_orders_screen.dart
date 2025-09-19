@@ -11,68 +11,70 @@ class SupportOrdersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-            Text(
-              'Заказы распределяются системой автоматически и таксопарки могут назначить заказ вручную. Это даёт всем водителям равные условия работы. Бывает, что новый заказ приходит не сразу. Чаще всего это означает, что сейчас в районе низкий спрос.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Заказы распределяются системой автоматически и таксопарки могут назначить заказ вручную. Это даёт всем водителям равные условия работы. Бывает, что новый заказ приходит не сразу. Чаще всего это означает, что сейчас в районе низкий спрос.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'Если нового заказа нет дольше 20 минут, начните с этих шагов:',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _buildBulletList([
+                      'Проверьте раздел Диагностика: если есть ограничения по заказам, там будут все подробности',
+                      'Перезагрузите телефон или планшет',
+                      'Проверьте, есть ли стабильное интернет-подключение',
+                      'Перезапустите - Вазир',
+                      'Включите статус - На линии',
+                    ]),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'Если всё работает стабильно, но заказы не приходят, обратите внимание на эти рекомендации:',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _buildBulletList([
+                      'Не стойте на месте, перемещайтесь',
+                      'Переключайтесь в статус Занят только при необходимости',
+                      'Смотрите карту повышенного спроса',
+                      'Учитывайте, что заказов будет меньше, если включён режим «Домой» или «По делам»,',
+                      'выбран только один способ оплаты или отключены некоторые тарифы',
+                    ]),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'Если ничего не помогает— позвоните в поддержку, будем разбираться вместе.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildCallButton(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Если нового заказа нет дольше 20 минут, начните с этих шагов:',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildBulletList([
-              'Проверьте раздел Диагностика: если есть ограничения по заказам, там будут все подробности',
-              'Перезагрузите телефон или планшет',
-              'Проверьте, есть ли стабильное интернет-подключение',
-              'Перезапустите - Вазир',
-              'Включите статус - На линии',
-            ]),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Если всё работает стабильно, но заказы не приходят, обратите внимание на эти рекомендации:',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildBulletList([
-              'Не стойте на месте, перемещайтесь',
-              'Переключайтесь в статус Занят только при необходимости',
-              'Смотрите карту повышенного спроса',
-              'Учитывайте, что заказов будет меньше, если включён режим «Домой» или «По делам»,',
-              'выбран только один способ оплаты или отключены некоторые тарифы',
-            ]),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Если ничего не помогает— позвоните в поддержку, будем разбираться вместе.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _buildCallButton(),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -11,37 +11,39 @@ class SupportCalculationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-            _buildSection(
-              'У меня вопрос про расчет стоимости заказа',
-              'Если нужно разобраться с оплатой или бонусами или комиссией по заказу — выберите из списка заказов нужный и позвоните в поддержку.',
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildSection(
-              'Не пришли деньги за заказ, и прошло меньше трёх дней.',
-              'Мы возмещаем нужную сумму не позднее 3 дней с момента совершения поездки. Вам не нужно для этого ничего делать — через три дня деньги придут сами. Бывает, что пришла только часть суммы, это означает, что недостающая часть дойдёт. Не пришли деньги за заказ, и прошло больше трёх дней. Позвоните в поддержку — будем разбираться.',
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildSection(
-              'Как снимается комиссия.',
-              'Комиссия — это плата за получение заказа, она списывается за каждую поездку. Есть комиссия сервиса и комиссия парка-партнёра (если вы работаете в компании). Списание комиссии по каждому заказу отражается в Карточке финансового отчёта в профиле.',
-            ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _buildCallButton(),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSection(
+                      'У меня вопрос про расчет стоимости заказа',
+                      'Если нужно разобраться с оплатой или бонусами или комиссией по заказу — выберите из списка заказов нужный и позвоните в поддержку.',
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSection(
+                      'Не пришли деньги за заказ, и прошло меньше трёх дней.',
+                      'Мы возмещаем нужную сумму не позднее 3 дней с момента совершения поездки. Вам не нужно для этого ничего делать — через три дня деньги придут сами. Бывает, что пришла только часть суммы, это означает, что недостающая часть дойдёт. Не пришли деньги за заказ, и прошло больше трёх дней. Позвоните в поддержку — будем разбираться.',
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSection(
+                      'Как снимается комиссия.',
+                      'Комиссия — это плата за получение заказа, она списывается за каждую поездку. Есть комиссия сервиса и комиссия парка-партнёра (если вы работаете в компании). Списание комиссии по каждому заказу отражается в Карточке финансового отчёта в профиле.',
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildCallButton(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

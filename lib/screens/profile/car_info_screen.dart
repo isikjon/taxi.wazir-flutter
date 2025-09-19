@@ -75,7 +75,7 @@ class _CarInfoScreenState extends State<CarInfoScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFE0E0E0),
+            color: AppColors.primaryWithOpacity20,
             width: 0.5,
           ),
         ),
@@ -133,7 +133,7 @@ class _CarInfoScreenState extends State<CarInfoScreen> {
             },
             activeColor: AppColors.primary,
             inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFFE0E0E0),
+            inactiveTrackColor: AppColors.primaryWithOpacity20,
           ),
         ],
       ),

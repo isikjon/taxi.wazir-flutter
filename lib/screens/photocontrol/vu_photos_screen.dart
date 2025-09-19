@@ -26,26 +26,28 @@ class _VuPhotosScreenState extends State<VuPhotosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTitle(),
-                  const SizedBox(height: AppSpacing.xl),
-                  _buildPhotoGrid(),
-                  const Spacer(),
-                  _buildActionButtons(context),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTitle(),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildPhotoGrid(),
+                    const Spacer(),
+                    _buildActionButtons(context),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -142,10 +144,10 @@ class _VuPhotosScreenState extends State<VuPhotosScreen> {
             width: double.infinity,
             height: 120,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: AppColors.primaryWithOpacity05,
               borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
               border: Border.all(
-                color: const Color(0xFFE0E0E0),
+                color: AppColors.primaryWithOpacity20,
                 width: 1,
               ),
             ),
@@ -158,7 +160,7 @@ class _VuPhotosScreenState extends State<VuPhotosScreen> {
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
-                                color: Colors.grey[300],
+                                color: AppColors.primaryWithOpacity10,
                                 child: const Icon(
                                   Icons.photo,
                                   color: Colors.grey,
@@ -172,7 +174,7 @@ class _VuPhotosScreenState extends State<VuPhotosScreen> {
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
-                                color: Colors.grey[300],
+                                color: AppColors.primaryWithOpacity10,
                                 child: const Icon(
                                   Icons.photo,
                                   color: Colors.grey,
@@ -204,51 +206,55 @@ class _VuPhotosScreenState extends State<VuPhotosScreen> {
   Widget _buildActionButtons(BuildContext context) {
     bool hasAllPhotos = _frontSidePhoto != null && _backSidePhoto != null && _selfiePhoto != null;
     
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.primary),
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
-                  ),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
                 ),
-                child: Text(
-                  'Назад',
-                  style: AppTextStyles.button.copyWith(
-                    color: AppColors.primary,
-                  ),
+              ),
+              child: Text(
+                'Назад',
+                style: AppTextStyles.button.copyWith(
+                  color: AppColors.primary,
                 ),
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: hasAllPhotos ? () => _submitPhotos(context) : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: hasAllPhotos ? AppColors.primary : AppColors.textSecondary,
-                  foregroundColor: AppColors.surface,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
-                  ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: hasAllPhotos ? () => _submitPhotos(context) : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: hasAllPhotos ? AppColors.primary : AppColors.textSecondary,
+                foregroundColor: AppColors.surface,
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
                 ),
-                child: Text(
-                  'Отправить',
-                  style: AppTextStyles.button.copyWith(
-                    color: AppColors.surface,
-                  ),
+              ),
+              child: Text(
+                'Отправить',
+                style: AppTextStyles.button.copyWith(
+                  color: AppColors.surface,
                 ),
               ),
             ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 

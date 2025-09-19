@@ -10,13 +10,15 @@ class StreetHailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: _buildContent(context),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: _buildContent(context),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -70,14 +72,14 @@ class StreetHailScreen extends StatelessWidget {
                 color: AppColors.background,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: const Color(0xFFE0E0E0),
+                  color: AppColors.primaryWithOpacity20,
                   width: 2,
                 ),
               ),
               child: const Icon(
                 Icons.block,
                 size: 60,
-                color: Color(0xFF999999),
+                color: const Color(0xFF264b47),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),

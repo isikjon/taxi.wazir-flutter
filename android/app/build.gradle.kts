@@ -35,6 +35,16 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Отключение R8 обфускации для избежания проблем с Google Play Core
+            isMinifyEnabled = false
+            isShrinkResources = false
+            
+            // Отключение отладочной информации
+            isDebuggable = false
+            isJniDebuggable = false
+            isRenderscriptDebuggable = false
+            isZipAlignEnabled = true
         }
     }
 }

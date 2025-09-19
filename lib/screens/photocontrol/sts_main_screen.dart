@@ -15,34 +15,7 @@ class StsMainScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.only(
-                top: 20,
-                left: AppSpacing.md,
-                right: AppSpacing.md,
-                bottom: AppSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
-                      color: AppColors.textPrimary,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'Фотоконтроль СТС',
-                      style: AppTextStyles.h3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildHeader(context),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -64,7 +37,7 @@ class StsMainScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 200,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
+                        color: AppColors.primaryWithOpacity05,
                         borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
                       ),
                       child: const Column(
@@ -73,13 +46,13 @@ class StsMainScreen extends StatelessWidget {
                           Icon(
                             Icons.image_outlined,
                             size: 60,
-                            color: Color(0xFFBBBBBB),
+                            color: const Color(0xFF264b47),
                           ),
                           SizedBox(height: AppSpacing.sm),
                           Text(
                             'Иллюстрация',
                             style: TextStyle(
-                              color: Color(0xFFBBBBBB),
+                              color: const Color(0xFF264b47),
                               fontSize: 14,
                             ),
                           ),
@@ -91,8 +64,13 @@ class StsMainScreen extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+            Container(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
               child: CustomButton(
                 text: 'Пройти проверку',
                 onPressed: () {
@@ -106,6 +84,37 @@ class StsMainScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(
+        top: 20,
+        left: AppSpacing.md,
+        right: AppSpacing.md,
+        bottom: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: AppColors.textPrimary,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Фотоконтроль СТС',
+              style: AppTextStyles.h3,
+            ),
+          ),
+        ],
       ),
     );
   }

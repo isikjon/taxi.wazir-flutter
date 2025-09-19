@@ -10,13 +10,15 @@ class TipsSafetyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: _buildContent(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -173,7 +175,7 @@ class TipsSafetyScreen extends StatelessWidget {
                 height: 6,
                 margin: const EdgeInsets.only(top: 6, right: AppSpacing.sm),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF999999),
+                  color: const Color(0xFF264b47),
                   shape: BoxShape.circle,
                 ),
               ),

@@ -11,32 +11,34 @@ class SupportDocumentsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-            _buildSection(
-              'Водительское удостоверение.',
-              'Ваш рейтинг привязывается к водительскому удостоверению. Чтобы обновить информацию в Wazir.Про и восстановить рейтинг, пришлите нам два номера — старого и нового водительского удостоверения. И прикрепите цветные фотографии нового удостоверения с обеих сторон.',
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildSection(
-              'Документы на автомобиль.',
-              'Напишите нам, какие данные нужно изменить, пришлите 7 фотографий машины (задних сидений; переднего пассажирского сиденья; правого и левого борта; передней и задней части авто; открытого багажника, свободного не менее, чем наполовину) и прикрепите фотографии свидетельства о регистрации автомобиля.',
-            ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _buildCallButton(),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSection(
+                      'Водительское удостоверение.',
+                      'Ваш рейтинг привязывается к водительскому удостоверению. Чтобы обновить информацию в Wazir.Про и восстановить рейтинг, пришлите нам два номера — старого и нового водительского удостоверения. И прикрепите цветные фотографии нового удостоверения с обеих сторон.',
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSection(
+                      'Документы на автомобиль.',
+                      'Напишите нам, какие данные нужно изменить, пришлите 7 фотографий машины (задних сидений; переднего пассажирского сиденья; правого и левого борта; передней и задней части авто; открытого багажника, свободного не менее, чем наполовину) и прикрепите фотографии свидетельства о регистрации автомобиля.',
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildCallButton(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

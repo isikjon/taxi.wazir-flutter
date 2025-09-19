@@ -11,28 +11,30 @@ class VerificationInstructionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTitle(),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildDescription(),
-                  const SizedBox(height: AppSpacing.xl),
-                  _buildStepsList(),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _buildStartButton(context),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTitle(),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildDescription(),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildStepsList(),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildStartButton(context),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

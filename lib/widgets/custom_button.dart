@@ -24,14 +24,14 @@ class CustomButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: width,
-      height: 48,
+      width: width ?? double.infinity,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: isSecondary ? AppColors.surface : AppColors.primary,
           foregroundColor: isSecondary ? AppColors.primary : AppColors.surface,
           elevation: AppSpacing.elevation,
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
             side: isSecondary ? const BorderSide(color: AppColors.primary) : BorderSide.none,

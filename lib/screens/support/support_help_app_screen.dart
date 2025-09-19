@@ -11,44 +11,46 @@ class SupportHelpAppScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-            _buildSection(
-              'Приложение не работает или выдаёт ошибку.',
-              'Почистите кэш на устройстве и переустановите Wazir из Play Market. Если рекомендации не помогли, опишите, что происходит: куда вы нажимаете и какая ошибка появляется. Мы разберёмся быстрее, если вы приложите скриншот.',
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildSection(
-              'Навигатор теряет местоположение.',
-              'Попробуйте следующие шаги, часто после них геолокация работает лучше:',
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildBulletList([
-              'Выключить энергосберегающий режим',
-              'Подключиться к Wi-Fi',
-              'Закрыть все сторонние приложения',
-              'Проверить настройку GPS-модуля через приложение для тестирования GPS',
-            ]),
-            const SizedBox(height: AppSpacing.xl),
-            _buildSection(
-              'Подключить тариф (если доступен в вашем регионе).',
-              'Чтобы получать заказы в тарифах «Доставка» или «Курьер», зайдите в Wazir, переведите рычажок напротив названия тарифа вправо и пройдите короткое обучение. Если вы уже проходили тестирование в «Доставке», сможете получать заказы в «Курьере» без повторного обучения.',
-            ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _buildCallButton(),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSection(
+                      'Приложение не работает или выдаёт ошибку.',
+                      'Почистите кэш на устройстве и переустановите Wazir из Play Market. Если рекомендации не помогли, опишите, что происходит: куда вы нажимаете и какая ошибка появляется. Мы разберёмся быстрее, если вы приложите скриншот.',
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSection(
+                      'Навигатор теряет местоположение.',
+                      'Попробуйте следующие шаги, часто после них геолокация работает лучше:',
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _buildBulletList([
+                      'Выключить энергосберегающий режим',
+                      'Подключиться к Wi-Fi',
+                      'Закрыть все сторонние приложения',
+                      'Проверить настройку GPS-модуля через приложение для тестирования GPS',
+                    ]),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSection(
+                      'Подключить тариф (если доступен в вашем регионе).',
+                      'Чтобы получать заказы в тарифах «Доставка» или «Курьер», зайдите в Wazir, переведите рычажок напротив названия тарифа вправо и пройдите короткое обучение. Если вы уже проходили тестирование в «Доставке», сможете получать заказы в «Курьере» без повторного обучения.',
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildCallButton(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

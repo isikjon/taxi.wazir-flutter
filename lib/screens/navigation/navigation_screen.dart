@@ -1,462 +1,326 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'dart:async';
+import 'package:dgis_mobile_sdk_full/dgis.dart' as sdk;
+import '../../models/order_model.dart';
 import '../../services/navigation_service.dart';
+// import '../../services/order_service.dart';
+// import '../../styles/app_theme.dart';
 import '../../styles/app_colors.dart';
-import '../../styles/app_text_styles.dart';
-import '../../styles/app_spacing.dart';
+import '../../main.dart' show sdkContext;
 
 class NavigationScreen extends StatefulWidget {
-  const NavigationScreen({super.key});
+  final OrderModel order;
+  final int driverId;
+
+  const NavigationScreen({
+    super.key,
+    required this.order,
+    required this.driverId,
+  });
 
   @override
   State<NavigationScreen> createState() => _NavigationScreenState();
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
-  GoogleMapController? _mapController;
-  final NavigationService _navigationService = NavigationService();
-  
-  Position? _currentPosition;
-  Map<String, dynamic>? _routeData;
-  Set<Polyline> _polylines = {};
-  Set<Marker> _markers = {};
-  bool _isLoading = true;
-  String? _error;
-  
-  // Состояние навигации
-  bool _navigationStarted = false;
-  StreamSubscription<Position>? _positionStream;
-  String _currentInstruction = 'Подготовка маршрута...';
-  String _distanceRemaining = '';
-  String _timeRemaining = '';
-  double _currentSpeed = 0.0;
+  late NavigationService _navigationService;
+  String _currentStatus = 'idle';
+  String _statusText = '';
+  late sdk.MapWidgetController _mapController;
+  late sdk.NavigationManager _navigationManager;
+  sdk.Map? _map;
+  StreamSubscription? _navStateSubscription;
 
   @override
   void initState() {
     super.initState();
-    _initializeNavigation();
+    _navigationService = NavigationService();
+    _setupNavigation();
+    _initializeMapAndNavigation();
   }
 
-  @override
-  void dispose() {
-    _positionStream?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _initializeNavigation() async {
-    try {
+  void _setupNavigation() {
+    _navigationService.initialize(null);
+    _navigationService.statusStream.listen((status) {
       setState(() {
-        _isLoading = true;
-        _error = null;
+        _currentStatus = status;
+        _statusText = _getStatusText(status);
       });
-
-      // Получаем текущее местоположение
-      final position = await _navigationService.getCurrentLocation();
-      
-      // Строим маршрут
-      final routeData = await _navigationService.buildRoute(position);
-      
-      if (routeData['success']) {
-        setState(() {
-          _currentPosition = position;
-          _routeData = routeData;
-          _isLoading = false;
-          _currentInstruction = 'Проедьте ${routeData['distance']} чтобы протестировать навигацию';
-          _distanceRemaining = routeData['distance'];
-          _timeRemaining = routeData['duration'];
-        });
-
-        _setupMapData();
-      } else {
-        setState(() {
-          _error = routeData['error'];
-          _isLoading = false;
-        });
+      if (status == 'completed' || status == 'cancelled') {
+        Navigator.of(context).pop();
       }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
+    });
+    _navigationService.startNavigation(widget.order, widget.driverId);
+  }
+
+  void _initializeMapAndNavigation() {
+    try {
+      _mapController = sdk.MapWidgetController();
+      _navigationManager = sdk.NavigationManager(sdkContext);
+      
+      _mapController.getMapAsync((map) {
+        _map = map;
+        _navigationManager.mapManager.addMap(map);
+        _setupLocationSource();
+        _subscribeNavigationState();
+        _startNavigation();
       });
+    } catch (e) {
+      print('Ошибка инициализации карты и навигации: $e');
     }
   }
 
-  void _setupMapData() {
-    if (_routeData == null) return;
+  void _setupLocationSource() {
+    if (_map != null) {
+      try {
+        final locationSource = sdk.MyLocationMapObjectSource(sdkContext);
+        _map!.addSource(locationSource);
+        
+        _centerMapOnCurrentLocation();
+      } catch (e) {
+        print('Ошибка настройки источника местоположения: $e');
+      }
+    }
+  }
 
-    // Создаем polyline для маршрута
-    final polylinePoints = _navigationService.decodePolyline(_routeData!['polyline']);
-    final polyline = Polyline(
-      polylineId: const PolylineId('route'),
-      points: polylinePoints.map((point) => 
-        LatLng(point['latitude']!, point['longitude']!)
-      ).toList(),
-      color: AppColors.primary,
-      width: 5,
-    );
-
-    // Создаем маркеры
-    final startMarker = Marker(
-      markerId: const MarkerId('start'),
-      position: LatLng(
-        _routeData!['startLocation']['lat'],
-        _routeData!['startLocation']['lng'],
-      ),
-      infoWindow: const InfoWindow(title: 'Старт'),
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-    );
-
-    final endMarker = Marker(
-      markerId: const MarkerId('end'),
-      position: LatLng(
-        _routeData!['endLocation']['lat'],
-        _routeData!['endLocation']['lng'],
-      ),
-      infoWindow: const InfoWindow(title: 'Финиш'),
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-    );
-
-    setState(() {
-      _polylines = {polyline};
-      _markers = {startMarker, endMarker};
-    });
+  void _centerMapOnCurrentLocation() async {
+    try {
+      final camera = _map!.camera;
+      final targetPoint = sdk.GeoPoint(
+        latitude: sdk.Latitude(42.8746),
+        longitude: sdk.Longitude(74.5698),
+      );
+      
+      await camera.move(
+        targetPoint,
+        sdk.Zoom(18.0),
+        sdk.Tilt(0.0),
+        sdk.Bearing(0.0),
+      );
+    } catch (e) {
+      print('Ошибка центрирования карты: $e');
+    }
   }
 
   void _startNavigation() {
-    if (_navigationStarted) return;
-    
-    setState(() {
-      _navigationStarted = true;
-      _currentInstruction = 'Навигация запущена. Следуйте по маршруту.';
-    });
+    try {
+      final order = widget.order;
 
-    // Начинаем отслеживание позиции
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5, // Обновляем каждые 5 метров
-      ),
-    ).listen(_onPositionUpdate);
-  }
-
-  void _onPositionUpdate(Position position) {
-    if (!mounted) return;
-
-    setState(() {
-      _currentPosition = position;
-      _currentSpeed = position.speed * 3.6; // м/с в км/ч
-    });
-
-    // Проверяем, достигли ли пункта назначения
-    if (_routeData != null) {
-      final destination = {
-        'latitude': (_routeData!['endLocation']['lat'] as num).toDouble(),
-        'longitude': (_routeData!['endLocation']['lng'] as num).toDouble(),
-      };
-
-      if (_navigationService.isAtDestination(position, destination)) {
-        _finishNavigation();
-      } else {
-        // Обновляем оставшееся расстояние
-        final remainingDistance = _navigationService.calculateDistance(
-          position.latitude,
-          position.longitude,
-          destination['latitude']!,
-          destination['longitude']!,
-        );
-        
-        setState(() {
-          _distanceRemaining = '${remainingDistance.round()} м';
-        });
-      }
-    }
-
-    // Обновляем камеру карты
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLng(
-        LatLng(position.latitude, position.longitude),
-      ),
-    );
-  }
-
-  void _finishNavigation() {
-    _positionStream?.cancel();
-    
-    setState(() {
-      _navigationStarted = false;
-      _currentInstruction = 'Навигация завершена! Тест пройден успешно.';
-      _distanceRemaining = '0 м';
-    });
-
-    // Показываем диалог завершения
-    _showCompletionDialog();
-  }
-
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('🎉 Тест завершен!'),
-        content: const Text(
-          'Навигация протестирована успешно.\nВы готовы к работе на линии!',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Закрываем диалог
-              Navigator.of(context).pop(); // Возвращаемся на главный экран
-            },
-            child: const Text('Завершить'),
+      // Сначала ведем к точке A (подача)
+      final routeToA = sdk.RouteBuildOptions(
+        finishPoint: sdk.RouteSearchPoint(
+          coordinates: sdk.GeoPoint(
+            latitude: sdk.Latitude(order.pickupLatitude!),
+            longitude: sdk.Longitude(order.pickupLongitude!),
           ),
-        ],
-      ),
-    );
+        ),
+        routeSearchOptions: sdk.RouteSearchOptions.car(
+          sdk.CarRouteSearchOptions(),
+        ),
+      );
+
+      _navigationManager.start(routeToA);
+    } catch (e) {
+      print('Ошибка запуска навигации: $e');
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'navigating_to_a':
+        return 'Едем к точке А';
+      case 'arrived_at_a':
+        return 'Прибыли в точку А';
+      case 'navigating_to_b':
+        return 'Едем к точке Б';
+      case 'completed':
+        return 'Заказ завершен';
+      default:
+        return 'Ожидание';
+    }
+  }
+
+  void _subscribeNavigationState() {
+    try {
+      _navStateSubscription = _navigationManager.uiModel.stateChannel.listen((state) {
+        // Когда доехали до точки A — строим маршрут до B
+        if (_currentStatus == 'navigating_to_a' || _currentStatus == 'idle') {
+          // Переводим наш сервис в состояние «едем к А» при старте навигации
+          if (_currentStatus == 'idle') {
+            setState(() {
+              _currentStatus = 'navigating_to_a';
+              _statusText = _getStatusText(_currentStatus);
+            });
+          }
+        }
+      });
+    } catch (e) {
+      // Если канал недоступен в текущей версии SDK — просто не подписываемся
+      print('Не удалось подписаться на состояние навигации: $e');
+    }
+  }
+
+  Future<void> _cancelOrder() async {
+    try {
+      await _navigationService.cancelCurrentOrder();
+    } catch (e) {
+      print('Ошибка отмены заказа: $e');
+    }
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(color: Colors.white),
-              const SizedBox(height: 20),
-              Text(
-                'Подготовка навигации...',
-                style: AppTextStyles.bodyLarge.copyWith(color: Colors.white),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error, color: Colors.red, size: 60),
-              const SizedBox(height: 20),
-              Text(
-                'Ошибка навигации',
-                style: AppTextStyles.h2.copyWith(color: Colors.white),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _error!,
-                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Вернуться'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       body: Stack(
         children: [
-          // Карта на весь экран
-          GoogleMap(
-            onMapCreated: (controller) => _mapController = controller,
-            initialCameraPosition: CameraPosition(
-              target: LatLng(
-                _currentPosition?.latitude ?? 42.8746,
-                _currentPosition?.longitude ?? 74.5698,
+          sdk.MapWidget(
+            sdkContext: sdkContext,
+            mapOptions: sdk.MapOptions(
+              position: sdk.CameraPosition(
+                point: sdk.GeoPoint(
+                  latitude: sdk.Latitude(42.8746),
+                  longitude: sdk.Longitude(74.5698),
+                ),
+                zoom: sdk.Zoom(18.0),
               ),
-              zoom: 18.0,
-              tilt: 60.0, // 3D эффект
             ),
-            mapType: MapType.normal,
-            polylines: _polylines,
-            markers: _markers,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            compassEnabled: false,
-            mapToolbarEnabled: false,
+            controller: _mapController,
           ),
           
-          // Верхняя панель с инструкциями
-          _buildTopPanel(),
+          // 2GIS UI Widgets «из коробки» — обернуты в Theme для корректного colorScheme
+          Positioned(
+            bottom: 120,
+            right: 16,
+            child: Material(
+              type: MaterialType.transparency,
+              child: Theme(
+                data: Theme.of(context),
+                child: Column(
+                  children: [
+                    // ZoomWidget - масштабирование
+                    const sdk.ZoomWidget(),
+                    const SizedBox(height: 8),
+                    
+                    // CompassWidget - компас  
+                    const sdk.CompassWidget(),
+                    const SizedBox(height: 8),
+                    
+                    // MyLocationWidget - текущее местоположение
+                    const sdk.MyLocationWidget(),
+                  ],
+                ),
+              ),
+            ),
+          ),
           
-          // Нижняя панель с кнопками
-          _buildBottomPanel(),
+          // Indoor / Traffic — верхние контролы
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.local_taxi,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Заказ #${widget.order.orderNumber}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _cancelOrder,
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        iconSize: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _statusText,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Theme(
+                        data: Theme.of(context),
+                        child: const sdk.IndoorWidget(),
+                      ),
+                      const SizedBox(width: 8),
+                      Theme(
+                        data: Theme.of(context),
+                        child: const sdk.TrafficWidget(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Навигационные UI-виджеты будут добавлены после проверки версии SDK и ключа
         ],
       ),
     );
   }
 
-  Widget _buildTopPanel() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back_ios),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        'Тестовая навигация',
-                        style: AppTextStyles.h3.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  _currentInstruction,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (_distanceRemaining.isNotEmpty || _timeRemaining.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      if (_distanceRemaining.isNotEmpty) ...[
-                        Icon(Icons.straighten, size: 16, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        Text(
-                          _distanceRemaining,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                      if (_timeRemaining.isNotEmpty && _distanceRemaining.isNotEmpty)
-                        const SizedBox(width: AppSpacing.md),
-                      if (_timeRemaining.isNotEmpty) ...[
-                        Icon(Icons.access_time, size: 16, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        Text(
-                          _timeRemaining,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomPanel() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Показатель скорости
-                if (_navigationStarted) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.speed, color: AppColors.textSecondary),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${_currentSpeed.toStringAsFixed(0)} км/ч',
-                        style: AppTextStyles.h3.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                ],
-                
-                // Кнопка запуска/остановки навигации
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _navigationStarted ? null : _startNavigation,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _navigationStarted 
-                          ? Colors.grey 
-                          : AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      _navigationStarted ? 'Навигация активна' : 'Начать тест',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _navigationService.dispose();
+    try {
+      _navStateSubscription?.cancel();
+      _navigationManager.stop();
+      if (_map != null) {
+        _navigationManager.mapManager.removeMap(_map!);
+      }
+    } catch (_) {}
+    super.dispose();
   }
 }

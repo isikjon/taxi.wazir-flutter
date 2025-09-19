@@ -157,8 +157,13 @@ class _StsPhotosScreenState extends State<StsPhotosScreen> {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+            Container(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -166,7 +171,7 @@ class _StsPhotosScreenState extends State<StsPhotosScreen> {
                       onPressed: () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
                         ),
@@ -206,10 +211,10 @@ class _StsPhotosScreenState extends State<StsPhotosScreen> {
             height: 120,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: AppColors.primaryWithOpacity05,
               borderRadius: BorderRadius.circular(AppSpacing.borderRadius),
               border: Border.all(
-                color: const Color(0xFFE0E0E0),
+                color: AppColors.primaryWithOpacity20,
                 width: 1,
               ),
             ),
@@ -222,7 +227,7 @@ class _StsPhotosScreenState extends State<StsPhotosScreen> {
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
-                                color: Colors.grey[300],
+                                color: AppColors.primaryWithOpacity10,
                                 child: const Icon(
                                   Icons.photo,
                                   color: Colors.grey,
@@ -236,7 +241,7 @@ class _StsPhotosScreenState extends State<StsPhotosScreen> {
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
-                                color: Colors.grey[300],
+                                color: AppColors.primaryWithOpacity10,
                                 child: const Icon(
                                   Icons.photo,
                                   color: Colors.grey,
@@ -279,7 +284,7 @@ class _StsPhotosScreenState extends State<StsPhotosScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFE0E0E0),
+                color: AppColors.primaryWithOpacity20,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

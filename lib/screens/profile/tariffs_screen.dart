@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../styles/app_colors.dart';
 import '../../services/user_data_service.dart';
 import '../../services/driver_service.dart';
 
@@ -144,7 +145,7 @@ class _TariffsScreenState extends State<TariffsScreen> {
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFFCECECE),
+            color: AppColors.primaryWithOpacity30,
             width: 0.5,
           ),
         ),
@@ -172,7 +173,7 @@ class _TariffsScreenState extends State<TariffsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: isActive ? const Color(0xFF4CAF50) : const Color(0xFF9E9E9E),
+                          color: isActive ? const Color(0xFF264b47) : AppColors.primaryWithOpacity30,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

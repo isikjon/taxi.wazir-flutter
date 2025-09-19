@@ -11,50 +11,52 @@ class SupportAccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-            Text(
-              'Зайдите в раздел Диагностика. Здесь видно всё, что мешает работе.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Зайдите в раздел Диагностика. Здесь видно всё, что мешает работе.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'Если есть надпись Доступ приостановлен — включилось временное ограничение. Оно снимется автоматически, система показывает точное время, когда можно вернуться к заказам.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'Если горит надпись Доступ закрыт — следуйте инструкциям, чтобы снова выйти на линию. В случае серьёзных нарушений вернуться к заказам не получится.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'Чтобы успешно работать и не терять доступ к заказам, пожалуйста, соблюдайте стандарты качества и безопасности.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildCallButton(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Если есть надпись Доступ приостановлен — включилось временное ограничение. Оно снимется автоматически, система показывает точное время, когда можно вернуться к заказам.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Если горит надпись Доступ закрыт — следуйте инструкциям, чтобы снова выйти на линию. В случае серьёзных нарушений вернуться к заказам не получится.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Чтобы успешно работать и не терять доступ к заказам, пожалуйста, соблюдайте стандарты качества и безопасности.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _buildCallButton(),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

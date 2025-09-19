@@ -192,10 +192,10 @@ class _WeeklyResultsScreenState extends State<WeeklyResultsScreen> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
+            color: AppColors.primaryWithOpacity05,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: const Color(0xFFE0E0E0),
+              color: AppColors.primaryWithOpacity20,
               width: 1,
             ),
           ),

@@ -11,32 +11,34 @@ class SupportItemsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-            _buildSection(
-              'В моей машине забыли вещи.',
-              'Пришлите номер заказа и подробно опишите, что забыл пользователь. Мы с ним свяжемся и расскажем о находке. Пожалуйста, помогите человеку вернуть вещи — он будет вам очень благодарен.',
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildSection(
-              'Не могу передать посылку (если тариф «Доставка» доступен в регионе).',
-              'Попробуйте связаться с получателем, его номер указан в заказе. Если это не помогло — расскажите нам про посылку и сообщите номер заказа. Мы поможем разобраться.',
-            ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  _buildCallButton(),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSection(
+                      'В моей машине забыли вещи.',
+                      'Пришлите номер заказа и подробно опишите, что забыл пользователь. Мы с ним свяжемся и расскажем о находке. Пожалуйста, помогите человеку вернуть вещи — он будет вам очень благодарен.',
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildSection(
+                      'Не могу передать посылку (если тариф «Доставка» доступен в регионе).',
+                      'Попробуйте связаться с получателем, его номер указан в заказе. Если это не помогло — расскажите нам про посылку и сообщите номер заказа. Мы поможем разобраться.',
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildCallButton(),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
