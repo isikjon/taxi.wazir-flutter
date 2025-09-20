@@ -670,7 +670,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
         }),
-          _buildMenuRow('Выход из Wazir', null, onTap: _handleLogout),
+          _buildMenuRow('Выход из Eco Такси', null, onTap: _handleLogout),
         ],
       ),
     );

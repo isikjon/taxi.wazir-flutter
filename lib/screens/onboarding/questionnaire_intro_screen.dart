@@ -170,7 +170,7 @@ class _QuestionnaireIntroScreenState extends State<QuestionnaireIntroScreen>
         child: Container(
           height: 64,
           decoration: BoxDecoration(
-            color: const Color(0xFF606060),
+            color: const Color(0xFF264b47),
             borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
           ),
           child: Material(

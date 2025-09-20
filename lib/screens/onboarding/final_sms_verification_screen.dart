@@ -250,7 +250,7 @@ class _FinalSmsVerificationScreenState extends State<FinalSmsVerificationScreen>
       child: Container(
         height: 64,
         decoration: BoxDecoration(
-          color: const Color(0xFF606060),
+          color: const Color(0xFF264b47),
           borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
         ),
         child: Material(
@@ -384,7 +384,7 @@ class _FinalSmsVerificationScreenState extends State<FinalSmsVerificationScreen>
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF606060),
+              backgroundColor: const Color(0xFF264b47),
               foregroundColor: Colors.white,
             ),
             child: const Text('Войти'),

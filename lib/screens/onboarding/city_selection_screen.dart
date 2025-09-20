@@ -160,7 +160,7 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: isActive ? AppColors.textPrimary : const Color(0xFFE0E0E0),
+                color: isActive ? AppColors.textPrimary : const Color(0xFF264b47),
                 borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
               ),
               child: Center(
@@ -217,7 +217,7 @@ class _CitySelectionScreenState extends State<CitySelectionScreen>
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: const Color(0xFFCECECE),
+                      color: const Color(0xFF264b47),
                       width: 1,
                     ),
                   ),

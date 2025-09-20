@@ -145,7 +145,7 @@ class _ConditionsScreenState extends State<ConditionsScreen>
                 ? AppColors.textPrimary 
                 : isActive 
                     ? AppColors.textPrimary 
-                    : const Color(0xFFE0E0E0),
+                    : const Color(0xFF264b47),
             borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
           ),
           child: Center(
@@ -227,7 +227,7 @@ class _ConditionsScreenState extends State<ConditionsScreen>
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: const Color(0xFFE0E0E0),
+            color: const Color(0xFF264b47),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
@@ -265,7 +265,7 @@ class _ConditionsScreenState extends State<ConditionsScreen>
       child: Container(
         height: 64,
         decoration: BoxDecoration(
-          color: const Color(0xFF606060),
+          color: const Color(0xFF264b47),
           borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
         ),
         child: Material(

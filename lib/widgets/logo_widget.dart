@@ -8,7 +8,7 @@ class LogoWidget extends StatelessWidget {
 
   const LogoWidget({
     super.key,
-    this.size = 100,
+    this.size = 120,
     this.showText = true,
   });
 
@@ -28,11 +28,7 @@ class LogoWidget extends StatelessWidget {
         Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(size / 2),
-          ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(size / 2),
             child: FutureBuilder<Widget>(
               future: _buildNetworkImage(),
               builder: (context, snapshot) {
@@ -43,8 +39,7 @@ class LogoWidget extends StatelessWidget {
                   width: size,
                   height: size,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
-                    borderRadius: BorderRadius.circular(size / 2),
+                    color: const Color(0xFF264b47),
                   ),
                   child: const Center(
                     child: CircularProgressIndicator(
@@ -57,7 +52,7 @@ class LogoWidget extends StatelessWidget {
             ),
           ),
         ),
-        // Текст "Wazir" удален по запросу
+        // Текст "Eco Такси" удален по запросу
       ],
     );
   }
@@ -76,7 +71,7 @@ class LogoWidget extends StatelessWidget {
           'assets/images/logo.png',
           width: size,
           height: size,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
         );
         
         return image;
@@ -93,9 +88,7 @@ class LogoWidget extends StatelessWidget {
   Future<Widget> _buildFromNetworkUrls() async {
     // Пробуем разные URL логотипа
     final List<String> logoUrls = [
-      'https://wazir.kg/static/logo.png',
-      'http://wazir.kg/static/logo.png', // Fallback на HTTP
-      'https://via.placeholder.com/200x200/4CAF50/FFFFFF?text=W', // Placeholder
+      'https://via.placeholder.com/200x200/264b47/FFFFFF?text=E', // Placeholder для Eco Такси
     ];
 
     for (String url in logoUrls) {
@@ -106,7 +99,7 @@ class LogoWidget extends StatelessWidget {
           url,
           width: size,
           height: size,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           headers: {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
             'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
@@ -122,8 +115,7 @@ class LogoWidget extends StatelessWidget {
               width: size,
               height: size,
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50),
-                borderRadius: BorderRadius.circular(size / 2),
+                color: const Color(0xFF264b47),
               ),
               child: const Center(
                 child: CircularProgressIndicator(
@@ -154,12 +146,11 @@ class LogoWidget extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50),
-        borderRadius: BorderRadius.circular(size / 2),
+        color: const Color(0xFF264b47),
       ),
       child: Center(
         child: Text(
-          'W',
+          'E',
           style: TextStyle(
             color: Colors.white,
             fontSize: size * 0.5,

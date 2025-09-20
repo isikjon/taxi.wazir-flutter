@@ -161,7 +161,7 @@ class _CityInfoScreenState extends State<CityInfoScreen>
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: isActive ? AppColors.textPrimary : const Color(0xFFE0E0E0),
+            color: isActive ? AppColors.textPrimary : const Color(0xFF264b47),
             borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
           ),
           child: Center(
@@ -259,7 +259,7 @@ class _CityInfoScreenState extends State<CityInfoScreen>
         child: Container(
           height: 64,
           decoration: BoxDecoration(
-            color: const Color(0xFF606060),
+            color: const Color(0xFF264b47),
             borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
           ),
           child: Material(

@@ -298,7 +298,7 @@ class _CarModelPopupScreenState extends State<CarModelPopupScreen>
               duration: const Duration(milliseconds: 300),
               height: selectedModel != null ? 64 : 0,
               decoration: BoxDecoration(
-                color: const Color(0xFF606060),
+                color: const Color(0xFF264b47),
                 borderRadius: BorderRadius.circular(AppSpacing.borderRadiusLarge),
               ),
               child: Material(
