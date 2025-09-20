@@ -14,7 +14,7 @@ class OrderService {
   Future<Map<String, dynamic>> updateOrderStatus(int orderId, String status, int driverId) async {
     try {
       final response = await _dio.put(
-        '$_baseUrl/api/orders/$orderId/status',
+        '$_baseUrl/driver/api/orders/$orderId/status',
         data: {
           'status': status,
           'driver_id': driverId,
@@ -33,10 +33,10 @@ class OrderService {
     }
   }
 
-  Future<OrderModel> getOrder(int orderId) async {
+  Future<OrderModel> getOrder(int orderId, int driverId) async {
     try {
-      final response = await _dio.get('$_baseUrl/api/orders/$orderId');
-      return OrderModel.fromJson(response.data);
+      final response = await _dio.get('$_baseUrl/driver/api/orders/$orderId?driver_id=$driverId');
+      return OrderModel.fromJson(response.data['order']);
     } catch (e) {
       throw Exception('Failed to get order: $e');
     }

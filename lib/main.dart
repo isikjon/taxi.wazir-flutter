@@ -1,17 +1,33 @@
 import 'package:flutter/material.dart';
-// import 'package:dgis_mobile_sdk_full/dgis.dart' as sdk;  // Временно отключен
+import 'package:dgis_mobile_sdk_full/dgis.dart' as sdk;
+import 'package:flutter/services.dart';
 import 'services/auth_service.dart';
 import 'styles/app_theme.dart';
 import 'screens/auth/phone_auth_screen.dart';
 import 'screens/main/main_app_screen.dart';
 
-// late sdk.Context sdkContext;  // Временно отключен
+late sdk.Context sdkContext;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 2GIS SDK временно отключен для уменьшения размера APK
-  print('Запуск приложения без 2GIS SDK...');
+  try {
+    // Загружаем ключ из assets
+    final keyData = await rootBundle.loadString('assets/dgissdk.key');
+    final apiKey = keyData.trim();
+    
+    if (apiKey.isEmpty || apiKey == 'YOUR_2GIS_API_KEY_HERE') {
+      throw Exception('2GIS API ключ не настроен. Замените содержимое файла assets/dgissdk.key на ваш реальный ключ');
+    }
+    
+    // Инициализируем SDK
+    sdkContext = await sdk.DGis.initialize();
+    print('2GIS SDK инициализирован успешно с ключом: ${apiKey.substring(0, 8)}...');
+  } catch (e) {
+    print('Ошибка инициализации 2GIS SDK: $e');
+    // Не прерываем запуск приложения, просто логируем ошибку
+    sdkContext = await sdk.DGis.initialize();
+  }
   
   runApp(const TaxiApp());
 }
@@ -40,7 +56,6 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _isLoading = true;
   bool _isLoggedIn = false;
-  String? _savedPhoneNumber;
 
   @override
   void initState() {
@@ -55,7 +70,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       
       setState(() {
         _isLoggedIn = isLoggedIn;
-        _savedPhoneNumber = driverData?['phoneNumber'];
         _isLoading = false;
       });
     } catch (e) {
