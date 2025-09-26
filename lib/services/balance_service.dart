@@ -9,22 +9,26 @@ class BalanceService {
   static BalanceService get instance => _instance ??= BalanceService._();
   BalanceService._();
 
-  Future<Map<String, dynamic>> getDriverBalance() async {
+  Future<Map<String, dynamic>> getDriverBalance([String? phoneNumber]) async {
     try {
-      final driverData = await AuthService.getCurrentDriver();
-      if (driverData == null) {
-        return {
-          'success': false,
-          'error': 'Водитель не авторизован',
-        };
+      // Если номер телефона не передан, получаем из локальных данных
+      if (phoneNumber == null) {
+        final driverData = await AuthService.getCurrentDriver();
+        if (driverData == null) {
+          return {
+            'success': false,
+            'error': 'Водитель не авторизован',
+          };
+        }
+        phoneNumber = driverData['phoneNumber'];
       }
 
-      final phoneNumber = driverData['phoneNumber'];
-      final String normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
+      final String normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber!);
       print('💰 Получение баланса для водителя: $normalizedPhone');
 
+      final encodedPhone = Uri.encodeComponent(normalizedPhone);
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/api/drivers/balance?phoneNumber=$normalizedPhone'),
+        Uri.parse('${ApiConfig.baseUrl}/api/drivers/balance?phoneNumber=$encodedPhone'),
         headers: ApiConfig.defaultHeaders,
       );
 
@@ -128,8 +132,9 @@ class BalanceService {
       final String normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
       print('📈 Получение статистики для водителя: $normalizedPhone');
 
+      final encodedPhone = Uri.encodeComponent(normalizedPhone);
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/api/drivers/stats?phoneNumber=$normalizedPhone'),
+        Uri.parse('${ApiConfig.baseUrl}/api/drivers/stats?phoneNumber=$encodedPhone'),
         headers: ApiConfig.defaultHeaders,
       );
 

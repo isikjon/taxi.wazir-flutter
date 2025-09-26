@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'api_service.dart';
 import 'user_data_service.dart';
 import 'database_service.dart';
+import 'firebase_messaging_service.dart';
 import '../utils/phone_utils.dart';
 
 class AuthService {
@@ -38,6 +39,9 @@ class AuthService {
           // Обновляем данные в UserDataService (сохраняем нормализованный номер)
           final String normalizedPhone = PhoneUtils.normalizePhoneNumber(phone);
           await UserDataService.instance.savePhoneNumber(normalizedPhone);
+          
+          // Отправляем FCM токен на сервер
+          await FirebaseMessagingService().refreshToken();
           
           // Если есть данные о таксопарке, сохраняем их
           if (driverData['taxiparkName'] != null) {

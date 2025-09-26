@@ -6,6 +6,7 @@ import '../../styles/app_colors.dart';
 import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
 import '../../services/photo_storage_service.dart';
+import '../../widgets/safe_bottom_sheet.dart';
 import 'sts_main_screen.dart';
 
 class VuPhotosScreen extends StatefulWidget {
@@ -259,55 +260,29 @@ class _VuPhotosScreenState extends State<VuPhotosScreen> {
   }
 
   void _takePhoto(String type) {
-    showModalBottomSheet(
+    SafeBottomSheet.show(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildPhotoSourceBottomSheet(type),
+      children: [
+        ListTile(
+          leading: const Icon(Icons.camera_alt),
+          title: const Text('Сфотографировать'),
+          onTap: () {
+            Navigator.of(context).pop();
+            _takePhotoWithCamera(type);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.photo_library),
+          title: const Text('Выбрать из галереи'),
+          onTap: () {
+            Navigator.of(context).pop();
+            _pickFromGallery(type);
+          },
+        ),
+      ],
     );
   }
 
-  Widget _buildPhotoSourceBottomSheet(String type) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt),
-            title: const Text('Сфотографировать'),
-            onTap: () {
-              Navigator.of(context).pop();
-              _takePhotoWithCamera(type);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library),
-            title: const Text('Выбрать из галереи'),
-            onTap: () {
-              Navigator.of(context).pop();
-              _pickFromGallery(type);
-            },
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
 
   Future<void> _takePhotoWithCamera(String type) async {
     try {

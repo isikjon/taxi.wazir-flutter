@@ -4,6 +4,7 @@ import '../../styles/app_colors.dart';
 import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
 import '../../services/balance_service.dart';
+import '../../widgets/safe_bottom_sheet.dart';
 import '../../models/balance_models.dart';
 
 class BalanceScreen extends StatefulWidget {
@@ -18,7 +19,6 @@ class _BalanceScreenState extends State<BalanceScreen> {
   BalanceData? _balanceData;
   TransactionList? _transactions;
   bool _isLoading = true;
-  String? _errorMessage;
 
   @override
   void initState() {
@@ -29,18 +29,13 @@ class _BalanceScreenState extends State<BalanceScreen> {
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
-      await Future.wait([
-        _loadBalance(),
-        _loadTransactions(),
-      ]);
+      await _loadBalance();
+      await _loadTransactions();
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Ошибка загрузки данных: $e';
-      });
+      print('Error loading balance data: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -55,8 +50,15 @@ class _BalanceScreenState extends State<BalanceScreen> {
         _balanceData = BalanceData.fromJson(result['data']);
       });
     } else if (mounted) {
+      // При ошибке показываем нулевой баланс
       setState(() {
-        _errorMessage = result['error'] ?? 'Ошибка загрузки баланса';
+        _balanceData = BalanceData(
+          currentBalance: 0.0,
+          weeklyEarnings: 0.0,
+          monthlyEarnings: 0.0,
+          totalOrders: 0,
+          lastUpdated: DateTime.now(),
+        );
       });
     }
   }
@@ -73,8 +75,15 @@ class _BalanceScreenState extends State<BalanceScreen> {
         _transactions = TransactionList.fromJson(result['data']);
       });
     } else if (mounted) {
+      // При ошибке показываем пустой список транзакций
       setState(() {
-        _errorMessage = result['error'] ?? 'Ошибка загрузки транзакций';
+        _transactions = TransactionList(
+          transactions: [],
+          totalCount: 0,
+          currentPage: 1,
+          totalPages: 1,
+          hasMore: false,
+        );
       });
     }
   }
@@ -87,37 +96,59 @@ class _BalanceScreenState extends State<BalanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
-      body: _buildBody(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: _buildBody(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: AppColors.background,
-      elevation: 0,
-      leading: IconButton(
-        onPressed: () => Navigator.of(context).pop(true),
-        icon: const Icon(
-          Icons.arrow_back_ios,
-          color: AppColors.textPrimary,
-        ),
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(
+        top: 20,
+        left: AppSpacing.md,
+        right: AppSpacing.md,
+        bottom: AppSpacing.md,
       ),
-      title: Text(
-        'Баланс',
-        style: AppTextStyles.h2,
-      ),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          onPressed: _showFilterBottomSheet,
-          icon: const Icon(
-            Icons.filter_list,
-            color: AppColors.textPrimary,
-            size: 24,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: AppColors.textPrimary,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-        ),
-      ],
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Баланс',
+              style: AppTextStyles.h3.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _showFilterBottomSheet,
+            icon: const Icon(
+              Icons.filter_list,
+              color: AppColors.textPrimary,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -125,34 +156,6 @@ class _BalanceScreenState extends State<BalanceScreen> {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppColors.error,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _errorMessage!,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.error,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            ElevatedButton(
-              onPressed: _loadData,
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
       );
     }
 
@@ -306,35 +309,6 @@ class _BalanceScreenState extends State<BalanceScreen> {
     );
   }
 
-  Widget _buildFilterBottomSheet() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppSpacing.borderRadius),
-          topRight: Radius.circular(AppSpacing.borderRadius),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: AppColors.divider,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          _buildFilterOption('За все время', _selectedFilter == 'За все время'),
-          const Divider(height: 1, color: AppColors.divider),
-          _buildFilterOption('Заказы за неделю', _selectedFilter == 'Заказы за неделю'),
-          const SizedBox(height: AppSpacing.md),
-        ],
-      ),
-    );
-  }
 
   Widget _buildFilterOption(String title, bool isSelected) {
     return InkWell(
@@ -372,10 +346,13 @@ class _BalanceScreenState extends State<BalanceScreen> {
   }
 
   void _showFilterBottomSheet() {
-    showModalBottomSheet(
+    SafeBottomSheet.show(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildFilterBottomSheet(),
+      children: [
+        _buildFilterOption('За все время', _selectedFilter == 'За все время'),
+        const Divider(height: 1, color: AppColors.divider),
+        _buildFilterOption('Заказы за неделю', _selectedFilter == 'Заказы за неделю'),
+      ],
     );
   }
 

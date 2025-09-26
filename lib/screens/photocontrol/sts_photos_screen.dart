@@ -7,6 +7,7 @@ import '../../styles/app_text_styles.dart';
 import '../../styles/app_spacing.dart';
 import '../../widgets/custom_button.dart';
 import '../../services/photo_storage_service.dart';
+import '../../widgets/safe_bottom_sheet.dart';
 import 'final_review_screen.dart';
 
 class StsPhotosScreen extends StatefulWidget {
@@ -269,46 +270,26 @@ class _StsPhotosScreenState extends State<StsPhotosScreen> {
   }
 
   void _showPhotoSourceDialog(String type) {
-    showModalBottomSheet(
+    SafeBottomSheet.show(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.primaryWithOpacity20,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Сфотографировать'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _takePhotoWithCamera(type);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Выбрать из галереи'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _pickFromGallery(type);
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
+      children: [
+        ListTile(
+          leading: const Icon(Icons.camera_alt),
+          title: const Text('Сфотографировать'),
+          onTap: () {
+            Navigator.of(context).pop();
+            _takePhotoWithCamera(type);
+          },
         ),
-      ),
+        ListTile(
+          leading: const Icon(Icons.photo_library),
+          title: const Text('Выбрать из галереи'),
+          onTap: () {
+            Navigator.of(context).pop();
+            _pickFromGallery(type);
+          },
+        ),
+      ],
     );
   }
 

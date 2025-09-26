@@ -1,116 +1,122 @@
 import 'dart:convert';
 import 'dart:async';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import '../models/order_model.dart';
-import '../config/api_config.dart';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'order_service.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
   factory WebSocketService() => _instance;
   WebSocketService._internal();
 
-  WebSocketChannel? _channel;
+  WebSocket? _webSocket;
+  Timer? _reconnectTimer;
   bool _isConnected = false;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 5;
 
-  final StreamController<OrderModel> _orderController = StreamController<OrderModel>.broadcast();
-  final StreamController<Map<String, dynamic>> _statusController = StreamController<Map<String, dynamic>>.broadcast();
-
-  Stream<OrderModel> get orderStream => _orderController.stream;
-  Stream<Map<String, dynamic>> get statusStream => _statusController.stream;
+  StreamController<Map<String, dynamic>> _messageController = StreamController.broadcast();
+  Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
 
   bool get isConnected => _isConnected;
 
-  Future<void> connect(String driverId, int taxiparkId) async {
-
+  Future<void> connect() async {
     try {
-      // Преобразуем HTTPS в WSS для WebSocket
-      final wsUrl = ApiConfig.baseUrl.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
-      _channel = WebSocketChannel.connect(
-        Uri.parse('$wsUrl/ws/orders'),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final driverData = prefs.getString('driver_data');
+      
+      if (driverData == null) {
+        print('❌ [WebSocket] Данные водителя не найдены');
+        return;
+      }
 
-      _channel!.stream.listen(
+      final driver = json.decode(driverData);
+      final driverId = driver['id'];
+      
+      print('🔍 [WebSocket] Подключаемся к WebSocket для водителя: $driverId');
+      
+      final wsUrl = 'ws://192.168.1.4:8400/ws/orders/driver/$driverId';
+      print('🔍 [WebSocket] URL: $wsUrl');
+      
+      _webSocket = await WebSocket.connect(wsUrl);
+      _isConnected = true;
+      _reconnectAttempts = 0;
+      
+      print('✅ [WebSocket] Подключение установлено');
+      
+      _webSocket!.listen(
         _handleMessage,
         onError: _handleError,
-        onDone: _handleDisconnect,
+        onDone: _handleDisconnection,
       );
-
-      _isConnected = true;
+      
     } catch (e) {
-      _isConnected = false;
-      rethrow;
+      print('❌ [WebSocket] Ошибка подключения: $e');
+      _scheduleReconnect();
     }
   }
 
   void _handleMessage(dynamic message) {
     try {
-      final data = jsonDecode(message);
-      final type = data['type'];
-
-      switch (type) {
-        case 'new_order':
-          final orderData = data['data'];
-          final order = OrderModel.fromJson(orderData);
-          _orderController.add(order);
-          break;
-        case 'order_status_changed':
-          _statusController.add(data);
-          break;
-        case 'connection_established':
-          break;
-        case 'error':
-          break;
+      print('🔍 [WebSocket] Получено сообщение: $message');
+      
+      final data = json.decode(message);
+      print('🔍 [WebSocket] Парсинг данных: $data');
+      
+      if (data['type'] == 'new_order') {
+        print('🔍 [WebSocket] Новый заказ получен');
+        final orderData = data['data'];
+        OrderService().setCurrentOrder(orderData);
+      } else if (data['type'] == 'order_status_update') {
+        print('🔍 [WebSocket] Обновление статуса заказа');
+        final orderData = data['data'];
+        OrderService().setCurrentOrder(orderData);
       }
+      
+      _messageController.add(data);
     } catch (e) {
-      print('Error parsing WebSocket message: $e');
+      print('❌ [WebSocket] Ошибка обработки сообщения: $e');
     }
   }
 
-  void _handleError(error) {
-    print('WebSocket error: $error');
+  void _handleError(dynamic error) {
+    print('❌ [WebSocket] Ошибка WebSocket: $error');
     _isConnected = false;
+    _scheduleReconnect();
   }
 
-  void _handleDisconnect() {
-    print('WebSocket disconnected');
+  void _handleDisconnection() {
+    print('🔍 [WebSocket] Соединение закрыто');
     _isConnected = false;
+    _scheduleReconnect();
   }
 
-  Future<void> sendOrderStatus(int orderId, String status) async {
-    if (!_isConnected || _channel == null) return;
+  void _scheduleReconnect() {
+    if (_reconnectAttempts >= _maxReconnectAttempts) {
+      print('❌ [WebSocket] Превышено максимальное количество попыток переподключения');
+      return;
+    }
 
-    final message = {
-      'type': 'order_status_update',
-      'order_id': orderId,
-      'status': status,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-
-    _channel!.sink.add(jsonEncode(message));
+    _reconnectAttempts++;
+    final delay = Duration(seconds: _reconnectAttempts * 2);
+    
+    print('🔍 [WebSocket] Переподключение через ${delay.inSeconds} секунд (попытка $_reconnectAttempts/$_maxReconnectAttempts)');
+    
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(delay, () {
+      connect();
+    });
   }
 
-  Future<void> sendLocationUpdate(double latitude, double longitude) async {
-    if (!_isConnected || _channel == null) return;
-
-    final message = {
-      'type': 'driver_location_update',
-      'latitude': latitude,
-      'longitude': longitude,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-
-    _channel!.sink.add(jsonEncode(message));
-  }
-
-  Future<void> disconnect() async {
-    await _channel?.sink.close();
-    _channel = null;
+  void disconnect() {
+    print('🔍 [WebSocket] Отключение WebSocket');
+    _reconnectTimer?.cancel();
+    _webSocket?.close();
     _isConnected = false;
   }
 
   void dispose() {
-    _orderController.close();
-    _statusController.close();
     disconnect();
+    _messageController.close();
   }
 }

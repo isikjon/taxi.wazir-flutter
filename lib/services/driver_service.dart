@@ -11,8 +11,9 @@ class DriverService {
 
   Future<Map<String, dynamic>?> getDriverProfile(String phoneNumber) async {
     try {
+      final encodedPhone = Uri.encodeComponent(phoneNumber);
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/drivers/profile?phoneNumber=$phoneNumber'),
+        Uri.parse('$_baseUrl/api/drivers/profile?phoneNumber=$encodedPhone'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -36,8 +37,9 @@ class DriverService {
 
   Future<Map<String, dynamic>?> getDriverCarInfo(String phoneNumber) async {
     try {
+      final encodedPhone = Uri.encodeComponent(phoneNumber);
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/drivers/car?phoneNumber=$phoneNumber'),
+        Uri.parse('$_baseUrl/api/drivers/car?phoneNumber=$encodedPhone'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -61,8 +63,9 @@ class DriverService {
 
   Future<Map<String, dynamic>?> getDriverTaxipark(String phoneNumber) async {
     try {
+      final encodedPhone = Uri.encodeComponent(phoneNumber);
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/drivers/taxipark?phoneNumber=$phoneNumber'),
+        Uri.parse('$_baseUrl/api/drivers/taxipark?phoneNumber=$encodedPhone'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -86,8 +89,9 @@ class DriverService {
 
   Future<Map<String, dynamic>?> getWeeklyResults(String phoneNumber) async {
     try {
+      final encodedPhone = Uri.encodeComponent(phoneNumber);
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/drivers/weekly-results?phoneNumber=$phoneNumber'),
+        Uri.parse('$_baseUrl/api/drivers/weekly-results?phoneNumber=$encodedPhone'),
         headers: {
           'Content-Type': 'application/json',
         },

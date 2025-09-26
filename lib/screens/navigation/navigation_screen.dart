@@ -189,44 +189,49 @@ class _NavigationScreenState extends State<NavigationScreen> {
       home: Scaffold(
         body: Stack(
             children: [
-            // 2GIS карта на весь экран
-            sdk.MapWidget(
-              sdkContext: sdkContext,
-              controller: _mapController,
-              mapOptions: sdk.MapOptions(
-                position: sdk.CameraPosition(
-                  point: sdk.GeoPoint(
-                    latitude: sdk.Latitude(40.5283), // Город Ош, Кыргызстан
-                    longitude: sdk.Longitude(72.7985),
+            // 2GIS карта с виджетами внутри
+            SizedBox.expand(
+              child: sdk.MapWidget(
+                sdkContext: sdkContext,
+                controller: _mapController,
+                mapOptions: sdk.MapOptions(
+                  position: sdk.CameraPosition(
+                    point: sdk.GeoPoint(
+                      latitude: sdk.Latitude(40.5283), // Город Ош, Кыргызстан
+                      longitude: sdk.Longitude(72.7985),
+                    ),
+                    zoom: sdk.Zoom(20.0), // Максимальный зум
                   ),
-                  zoom: sdk.Zoom(20.0), // Максимальный зум
+                ),
+                child: Stack(
+                  children: [
+                    // 2GIS стандартные виджеты внутри MapWidget
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 80,
+                      right: 16,
+                      child: sdk.TrafficWidget(),
+                    ),
+                      
+                    Positioned(
+                      bottom: 120,
+                      right: 16,
+                      child: sdk.ZoomWidget(),
+                    ),
+                      
+                    Positioned(
+                      bottom: 200,
+                      right: 16,
+                      child: sdk.CompassWidget(),
+                    ),
+                      
+                    Positioned(
+                      bottom: 280,
+                      right: 16,
+                      child: sdk.MyLocationWidget(),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            
-            // 2GIS стандартные виджеты
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 80,
-              right: 16,
-              child: sdk.TrafficWidget(),
-            ),
-              
-            Positioned(
-              bottom: 120,
-              right: 16,
-              child: sdk.ZoomWidget(),
-            ),
-              
-            Positioned(
-              bottom: 200,
-              right: 16,
-              child: sdk.CompassWidget(),
-            ),
-              
-            Positioned(
-              bottom: 280,
-              right: 16,
-              child: sdk.MyLocationWidget(),
             ),
           
           // Кнопка закрытия в левом верхнем углу

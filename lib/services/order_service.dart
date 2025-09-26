@@ -1,5 +1,7 @@
-import 'package:dio/dio.dart';
-import '../models/order_model.dart';
+import 'dart:convert';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class OrderService {
@@ -7,72 +9,132 @@ class OrderService {
   factory OrderService() => _instance;
   OrderService._internal();
 
-  final Dio _dio = Dio();
-  String get _baseUrl => ApiConfig.baseUrl;
+  StreamController<Map<String, dynamic>> _orderStreamController = StreamController.broadcast();
+  Stream<Map<String, dynamic>> get orderStream => _orderStreamController.stream;
 
+  Map<String, dynamic>? _currentOrder;
+  Map<String, dynamic>? get currentOrder => _currentOrder;
 
-  Future<Map<String, dynamic>> updateOrderStatus(int orderId, String status, int driverId) async {
+  void updateOrderStatus(String status) {
+    if (_currentOrder != null) {
+      _currentOrder!['status'] = status;
+      _orderStreamController.add(_currentOrder!);
+    }
+  }
+
+  void setCurrentOrder(Map<String, dynamic> order) {
+    _currentOrder = order;
+    _orderStreamController.add(order);
+  }
+
+  void clearCurrentOrder() {
+    _currentOrder = null;
+    _orderStreamController.add({});
+  }
+
+  Future<Map<String, dynamic>> acceptOrder(int orderId) async {
     try {
-      final response = await _dio.put(
-        '$_baseUrl/driver/api/orders/$orderId/status',
-        data: {
-          'status': status,
-          'driver_id': driverId,
-          'timestamp': DateTime.now().toIso8601String(),
-        },
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        ),
+      final prefs = await SharedPreferences.getInstance();
+      final driverData = prefs.getString('driver_data');
+      
+      if (driverData == null) {
+        throw Exception('Данные водителя не найдены');
+      }
+
+      final driver = json.decode(driverData);
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/driver/orders/$orderId/accept'),
+        headers: ApiConfig.defaultHeaders,
+        body: json.encode({
+          'driver_id': driver['id'],
+        }),
       );
 
-      return response.data;
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['success']) {
+          updateOrderStatus('accepted');
+          return result;
+        }
+      }
+      
+      throw Exception('Ошибка принятия заказа: ${response.body}');
     } catch (e) {
-      throw Exception('Failed to update order status: $e');
+      print('❌ Ошибка принятия заказа: $e');
+      rethrow;
     }
   }
 
-  Future<OrderModel> getOrder(int orderId, int driverId) async {
+  Future<Map<String, dynamic>> rejectOrder(int orderId) async {
     try {
-      final response = await _dio.get('$_baseUrl/driver/api/orders/$orderId?driver_id=$driverId');
-      return OrderModel.fromJson(response.data['order']);
+      final prefs = await SharedPreferences.getInstance();
+      final driverData = prefs.getString('driver_data');
+      
+      if (driverData == null) {
+        throw Exception('Данные водителя не найдены');
+      }
+
+      final driver = json.decode(driverData);
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/driver/orders/$orderId/reject'),
+        headers: ApiConfig.defaultHeaders,
+        body: json.encode({
+          'driver_id': driver['id'],
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['success']) {
+          clearCurrentOrder();
+          return result;
+        }
+      }
+      
+      throw Exception('Ошибка отклонения заказа: ${response.body}');
     } catch (e) {
-      throw Exception('Failed to get order: $e');
+      print('❌ Ошибка отклонения заказа: $e');
+      rethrow;
     }
   }
 
-  Future<List<OrderModel>> getDriverOrders(int driverId) async {
+  Future<Map<String, dynamic>> updateOrderStatusToServer(String status) async {
+    if (_currentOrder == null) return {};
+
     try {
-      final response = await _dio.get('$_baseUrl/api/drivers/$driverId/orders');
-      final List<dynamic> ordersData = response.data;
-      return ordersData.map((json) => OrderModel.fromJson(json)).toList();
+      final prefs = await SharedPreferences.getInstance();
+      final driverData = prefs.getString('driver_data');
+      
+      if (driverData == null) {
+        throw Exception('Данные водителя не найдены');
+      }
+
+      final driver = json.decode(driverData);
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/driver/orders/${_currentOrder!['id']}/status'),
+        headers: ApiConfig.defaultHeaders,
+        body: json.encode({
+          'driver_id': driver['id'],
+          'status': status,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['success']) {
+          updateOrderStatus(status);
+          return result;
+        }
+      }
+      
+      throw Exception('Ошибка обновления статуса: ${response.body}');
     } catch (e) {
-      throw Exception('Failed to get driver orders: $e');
+      print('❌ Ошибка обновления статуса заказа: $e');
+      rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> acceptOrder(int orderId, int driverId) async {
-    return await updateOrderStatus(orderId, 'accepted', driverId);
-  }
-
-  Future<Map<String, dynamic>> startNavigationToA(int orderId, int driverId) async {
-    return await updateOrderStatus(orderId, 'navigating_to_a', driverId);
-  }
-
-  Future<Map<String, dynamic>> arrivedAtA(int orderId, int driverId) async {
-    return await updateOrderStatus(orderId, 'arrived_at_a', driverId);
-  }
-
-  Future<Map<String, dynamic>> startNavigationToB(int orderId, int driverId) async {
-    return await updateOrderStatus(orderId, 'navigating_to_b', driverId);
-  }
-
-  Future<Map<String, dynamic>> completeOrder(int orderId, int driverId) async {
-    return await updateOrderStatus(orderId, 'completed', driverId);
-  }
-
-  Future<Map<String, dynamic>> cancelOrder(int orderId, int driverId) async {
-    return await updateOrderStatus(orderId, 'cancelled', driverId);
+  void dispose() {
+    _orderStreamController.close();
   }
 }

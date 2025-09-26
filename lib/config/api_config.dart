@@ -1,13 +1,10 @@
 class ApiConfig {
-  // Основные URL серверов
   static const String productionBaseUrl = 'https://new.superadmin.taxi.wazir.kg';
-  static const String developmentBaseUrl = 'http://127.0.0.1:8080';
-  // static const String testBaseUrl = 'https://test.superadmin.taxi.wazir.kg';
+  static const String developmentBaseUrl = 'http://192.168.1.4:8400';
+  static const String testBaseUrl = 'https://test.superadmin.taxi.wazir.kg';
   
-  // Текущий режим (можно менять для тестирования)
   static const ApiEnvironment currentEnvironment = ApiEnvironment.production;
   
-  // Получить текущий базовый URL
   static String get baseUrl {
     switch (currentEnvironment) {
       case ApiEnvironment.production:
@@ -15,20 +12,22 @@ class ApiConfig {
       case ApiEnvironment.development:
         return developmentBaseUrl;
       case ApiEnvironment.test:
-        return productionBaseUrl; // Используем продакшн как тест
+        return productionBaseUrl; 
     }
   }
 
-  // API endpoints
   static const Map<String, String> endpoints = {
-    'test': '/test',
-    'sms_send': '/auth/send-sms',     // Исправлен на правильный эндпоинт
-    'sms_status': '/auth/verify-sms', // Исправлен на правильный эндпоинт
-    'driver_login': '/auth/login',    // Исправлен на правильный эндпоинт
+    'test': '/',
+    'sms_send': '/api/sms/send',
+    'sms_status': '/api/sms/status',
+    'driver_login': '/api/drivers/login',
     'driver_register': '/api/drivers/register',
-    'taxiparks': '/superadmin/api/taxiparks/',
-    'auth_login': '/auth/login',
-    'auth_me': '/auth/me',
+    'driver_status': '/api/drivers/status',
+    'taxiparks': '/api/parks',
+    'auth_login': '/api/drivers/login',
+    'auth_me': '/api/drivers/me',
+    'photo_control_submit': '/api/photo-control/submit',
+    'photo_control_status': '/api/photo-control/status',
   };
   
   // Получить полный URL для эндпоинта

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import 'photo_storage_service.dart';
+import 'firebase_messaging_service.dart';
 // Условный импорт для разных платформ (не используется в мобильной версии)
 
 class PhotoVerificationService {
@@ -29,7 +30,7 @@ class PhotoVerificationService {
         return false;
       }
       
-      final url = '${ApiConfig.baseUrl}/api/photo-control/submit';
+      final url = ApiConfig.getEndpointUrl('photo_control_submit');
       print('📸 Отправка фото на: $url');
       print('📸 Телефон водителя: $driverPhone');
       print('📸 Фотографии: ${photos.keys.toList()}');
@@ -142,7 +143,8 @@ class PhotoVerificationService {
         };
       }
       
-      final url = '${ApiConfig.baseUrl}/api/photo-control/status?driver_phone=$driverPhone';
+      final encodedPhone = Uri.encodeComponent(driverPhone);
+      final url = '${ApiConfig.getEndpointUrl('photo_control_status')}?driver_phone=$encodedPhone';
       
       final response = await http.get(Uri.parse(url));
       
@@ -199,6 +201,32 @@ class PhotoVerificationService {
       await _photoStorage.setRejectionReason(reason);
     } catch (e) {
       print('Ошибка отклонения фото: $e');
+    }
+  }
+
+  Future<void> refreshStatusFromServer() async {
+    try {
+      final statusData = await getVerificationStatus();
+      await _photoStorage.setVerificationStatus(statusData['status'] ?? 'not_started');
+      if (statusData['rejection_reason'] != null) {
+        await _photoStorage.setRejectionReason(statusData['rejection_reason']);
+      }
+    } catch (e) {
+      print('Ошибка обновления статуса с сервера: $e');
+    }
+  }
+
+  Future<void> handleNotificationUpdate(String status, String? rejectionReason) async {
+    try {
+      await _photoStorage.setVerificationStatus(status);
+      if (rejectionReason != null) {
+        await _photoStorage.setRejectionReason(rejectionReason);
+      } else {
+        await _photoStorage.setRejectionReason('');
+      }
+      print('✅ Статус фотоконтроля обновлен через уведомление: $status');
+    } catch (e) {
+      print('❌ Ошибка обновления статуса через уведомление: $e');
     }
   }
 

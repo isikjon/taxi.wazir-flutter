@@ -43,3 +43,67 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# 2GIS Documentation and SDK files
+2gis_flutter_docs/
+**/2gis_flutter_docs/
+*.dgis
+dgis_*
+
+# Firebase and Google Services
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
+
+# API Keys and sensitive files
+**/dgissdk.key
+**/api_keys.dart
+**/secrets.dart
+**/config/secrets.dart
+
+# Build and cache directories
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+
+# IDE and editor files
+**/.vscode/
+**/.idea/
+**/*.iml
+**/*.ipr
+**/*.iws
+
+# OS generated files
+**/.DS_Store
+**/Thumbs.db
+**/.directory
+
+# Logs and temporary files
+**/*.log
+**/*.tmp
+**/*.temp
+**/logs/
+
+# Test coverage
+**/coverage/
+**/.coverage
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
+
+# Backup files
+**/*.bak
+**/*.backup
+**/*~
+
+# Large media files (uncomment if needed)
+# **/*.mp4
+# **/*.avi
+# **/*.mov
+# **/*.mkv

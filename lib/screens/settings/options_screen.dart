@@ -10,43 +10,75 @@ class OptionsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _buildAppBar(context),
-      body: _buildBody(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: _buildBody(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: AppColors.background,
-      elevation: 0,
-      leading: IconButton(
-        onPressed: () => Navigator.of(context).pop(),
-        icon: const Icon(
-          Icons.arrow_back_ios,
-          color: AppColors.textPrimary,
-        ),
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(
+        top: 20,
+        left: AppSpacing.md,
+        right: AppSpacing.md,
+        bottom: AppSpacing.md,
       ),
-      title: Text(
-        'Опции для тарифов',
-        style: AppTextStyles.h2,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: AppColors.textPrimary,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Опции для тарифов',
+              style: AppTextStyles.h3.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              // Обновление данных если нужно
+            },
+            icon: const Icon(
+              Icons.refresh,
+              color: AppColors.textPrimary,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
       ),
-      centerTitle: true,
     );
   }
 
   Widget _buildBody() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Center(
-          child: Text(
-            'Пока в разработке\n\nДоступных опций пока нет',
-            style: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Center(
+        child: Text(
+          'Пока в разработке\n\nДоступных опций пока нет',
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: AppColors.textSecondary,
+            height: 1.5,
           ),
+          textAlign: TextAlign.center,
         ),
       ),
     );

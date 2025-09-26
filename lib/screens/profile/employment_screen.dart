@@ -119,7 +119,6 @@ class _EmploymentScreenState extends State<EmploymentScreen> {
             _taxiparkData?['address'] ?? 'Кыргыстан г. Ок мкр Анар 1, (орентир Автомойка Нурзаман, кафе Нирвана)',
           ),
           const Spacer(),
-          _buildSelectedButton(),
           const SizedBox(height: 20),
         ],
       ),
@@ -196,27 +195,6 @@ class _EmploymentScreenState extends State<EmploymentScreen> {
     );
   }
 
-  Widget _buildSelectedButton() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      width: double.infinity,
-      height: 50,
-      decoration: BoxDecoration(
-        color: const Color(0xFF999999),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Center(
-        child: Text(
-          'Парк выбран',
-          style: GoogleFonts.montserrat(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
 
   void _showComingSoonAlert() {
     showDialog(

@@ -5,6 +5,7 @@ import '../../services/api_service.dart';
 import '../../services/balance_service.dart';
 import '../../services/driver_service.dart';
 import '../../models/balance_models.dart';
+import '../../widgets/safe_bottom_sheet.dart';
 import '../auth/phone_auth_screen.dart';
 import '../balance/balance_screen.dart';
 import '../profile/personal_data_screen.dart';
@@ -17,9 +18,12 @@ import '../streethail/street_hail_screen.dart';
 import '../tips/useful_tips_screen.dart';
 import '../navigation/navigation_screen.dart';
 import '../navigation/order_notification_screen.dart';
+import '../navigation/online_navigation_screen.dart';
+import '../order/new_order_screen.dart';
 import '../../services/diagnostics_service.dart';
 import '../../services/websocket_service.dart';
 import '../../services/order_service.dart';
+import '../../services/driver_status_service.dart';
 import '../../models/order_model.dart';
 
 class MainAppScreen extends StatefulWidget {
@@ -72,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadDriverData();
     _initializeWebSocket();
+    _ensureOfflineStatus();
   }
 
   Future<void> _initializeWebSocket() async {
@@ -82,8 +87,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentTaxiparkId = driverData['taxiparkId'];
         
         if (_currentDriverId != null && _currentTaxiparkId != null) {
-          await _webSocketService.connect(_currentDriverId.toString(), _currentTaxiparkId!);
-          _webSocketService.orderStream.listen(_handleNewOrder);
+          await _webSocketService.connect();
+          _webSocketService.messageStream.listen(_handleWebSocketMessage);
         }
       }
     } catch (e) {
@@ -91,24 +96,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _handleNewOrder(OrderModel order) {
+  void _handleWebSocketMessage(Map<String, dynamic> message) {
     if (!mounted) return;
     
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => OrderNotificationScreen(
-        order: order,
-        onAccept: () {
-          Navigator.of(context).pop();
-          _acceptOrder(order);
-        },
-        onDecline: () {
-          Navigator.of(context).pop();
-          _declineOrder(order);
-        },
-      ),
-    );
+    if (message['type'] == 'new_order') {
+      final orderData = message['data'];
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => NewOrderScreen(orderData: orderData),
+        ),
+      );
+    }
   }
 
   Future<void> _acceptOrder(OrderModel order) async {
@@ -145,28 +143,76 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _ensureOfflineStatus() async {
+    try {
+      await DriverStatusService().goOffline();
+      print('✅ Статус offline установлен на главной странице');
+    } catch (e) {
+      print('❌ Ошибка установки статуса offline: $e');
+    }
+  }
+
+  Future<dynamic> _navigateToOfflinePage(Widget page) async {
+    await DriverStatusService().goOffline();
+    if (mounted) {
+      return await Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => page),
+      );
+    }
+    return null;
+  }
+
   Future<void> _loadDriverData() async {
     try {
       // Показываем полную информацию о API
       await ApiService.printApiInfo();
       
-      final driverData = await AuthService.getCurrentDriver();
-      if (mounted) {
-        setState(() {
-          _driverData = driverData;
-        });
-      }
+      // Получаем номер телефона из локальных данных для API запросов
+      final localDriverData = await AuthService.getCurrentDriver();
+      final phoneNumber = localDriverData?['phoneNumber'];
       
-      // Загружаем данные таксопарка и тариф
-      if (driverData != null && driverData['phoneNumber'] != null) {
-        final taxiparkData = await DriverService().getDriverTaxipark(driverData['phoneNumber']);
-        final driverProfile = await DriverService().getDriverProfile(driverData['phoneNumber']);
-        
-        if (mounted) {
+      if (phoneNumber != null) {
+        // Сначала используем локальные данные для быстрого отображения
+        if (mounted && localDriverData != null) {
           setState(() {
-            _taxiparkData = taxiparkData;
-            _currentTariff = driverProfile?['tariff'] ?? 'Эконом';
+            _driverData = localDriverData;
           });
+        }
+        
+        // Затем пытаемся загрузить актуальные данные с сервера
+        try {
+          final driverProfile = await DriverService().getDriverProfile(phoneNumber);
+          final taxiparkData = await DriverService().getDriverTaxipark(phoneNumber);
+          
+          if (mounted && driverProfile != null) {
+            setState(() {
+              // Обновляем данные с сервера
+              _driverData = {
+                'id': driverProfile['id'],
+                'phoneNumber': driverProfile['phone_number'],
+                'fullName': '${driverProfile['first_name']} ${driverProfile['last_name']}',
+                'carModel': driverProfile['car_model'],
+                'carNumber': driverProfile['car_number'],
+                'carColor': driverProfile['car_color'],
+                'carYear': driverProfile['car_year'],
+                'carVin': driverProfile['car_vin'],
+                'carBodyNumber': driverProfile['car_body_number'],
+                'carSts': driverProfile['car_sts'],
+                'callSign': driverProfile['call_sign'],
+                'balance': driverProfile['balance'],
+                'status': driverProfile['is_active'] ? 'active' : 'inactive',
+                'blocked': false,
+                'blockMessage': null,
+                'taxiparkId': driverProfile['taxipark']?['id'],
+                'taxiparkName': driverProfile['taxipark']?['name'],
+              };
+              _taxiparkData = taxiparkData;
+              _currentTariff = driverProfile['tariff'] ?? 'Эконом';
+            });
+          }
+        } catch (e) {
+          print('❌ Ошибка загрузки данных с сервера: $e');
+          // Если сервер недоступен, используем локальные данные
         }
       }
       
@@ -193,11 +239,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadBalance() async {
     try {
-      final result = await BalanceService.instance.getDriverBalance();
-      if (result['success'] && mounted) {
-        setState(() {
-          _balanceData = BalanceData.fromJson(result['data']);
-        });
+      // Получаем номер телефона из текущих данных водителя
+      final phoneNumber = _driverData?['phoneNumber'];
+      if (phoneNumber != null) {
+        final result = await BalanceService.instance.getDriverBalance(phoneNumber);
+        if (result['success'] && mounted) {
+          setState(() {
+            _balanceData = BalanceData.fromJson(result['data']);
+          });
+        }
       }
     } catch (e) {
       print('❌ Ошибка загрузки баланса: $e');
@@ -260,10 +310,10 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final driverName = _driverData?['fullName'] ?? 'Маасалиев Талантбек';
-    final carModel = _driverData?['carModel'] ?? 'BMW M5';
-    final carNumber = _driverData?['carNumber'] ?? '01 29 9 20001';
-    final taxiparkName = _driverData?['taxiparkName'] ?? 'Томар Такси';
+    final driverName = _driverData?['fullName'] ?? 'Загрузка...';
+    final carModel = _driverData?['carModel'] ?? 'Загрузка...';
+    final carNumber = _driverData?['carNumber'] ?? 'Загрузка...';
+    final taxiparkName = _driverData?['taxiparkName'] ?? 'Загрузка...';
     
     print('Driver data in UI: $_driverData');
     print('Driver name: $driverName');
@@ -550,12 +600,12 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.only(top: 1),
       child: Column(
         children: [
+          Container(
+            height: 8,
+            color: AppColors.primaryWithOpacity05,
+          ),
           _buildMenuRow('Баланс', null, onTap: () async {
-            final result = await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const BalanceScreen(),
-              ),
-            );
+            final result = await _navigateToOfflinePage(const BalanceScreen());
             // Обновляем баланс после возврата со страницы баланса
             if (result == true) {
               await _loadBalance();
@@ -563,11 +613,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }),
           _buildMenuRow('Оплата', _selectedPaymentMethod, onTap: _showPaymentMethodBottomSheet),
           _buildMenuRow('Личные данные о вас', null, onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const PersonalDataScreen(),
-              ),
-            );
+            _navigateToOfflinePage(const PersonalDataScreen());
           }),
           Container(
             height: 8,
@@ -588,25 +634,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           _buildMenuRow('Тарифы', '${_currentTariff == 'Эконом' ? 1 : 0} из 6', onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const TariffsScreen(),
-              ),
-            );
+            _navigateToOfflinePage(const TariffsScreen());
           }),
           _buildMenuRow('Опции для тарифов', null, onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const OptionsScreen(),
-              ),
-            );
+            _navigateToOfflinePage(const OptionsScreen());
           }),
           _buildMenuRow('Поддержка', null, onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const SupportMainScreen(),
-              ),
-            );
+            _navigateToOfflinePage(const SupportMainScreen());
           }),
           _buildMenuRow('Диагностика', _diagnosticsIssuesCount > 0 ? '$_diagnosticsIssuesCount' : null, onTap: () {
             Navigator.of(context).push(
@@ -622,25 +656,13 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           }),
           _buildMenuRow('Фотоконтроль', null, onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const PhotocontrolScreen(),
-              ),
-            );
+            _navigateToOfflinePage(const PhotocontrolScreen());
           }),
           _buildMenuRow('От борта', null, onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const StreetHailScreen(),
-              ),
-            );
+            _navigateToOfflinePage(const StreetHailScreen());
           }),
           _buildMenuRow('Полезные советы', null, onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const UsefulTipsScreen(),
-              ),
-            );
+            _navigateToOfflinePage(const UsefulTipsScreen());
           }),
         _buildMenuRow('Выполнить тестовый заказ', null, onTap: () {
             final testOrder = OrderModel(
@@ -809,42 +831,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   void _showPaymentMethodBottomSheet() {
-    showModalBottomSheet(
+    SafeBottomSheet.show(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildPaymentMethodBottomSheet(),
+      children: [
+        _buildPaymentOption('Оплата наличными', 'cash', true),
+        _buildPaymentOption('Безналичная оплата', 'card', false),
+        _buildPaymentOption('Наличными или картой', 'both', false),
+      ],
     );
   }
 
-  Widget _buildPaymentMethodBottomSheet() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          _buildPaymentOption('Оплата наличными', 'cash', true),
-          _buildPaymentOption('Безналичная оплата', 'card', false),
-          _buildPaymentOption('Наличными или картой', 'both', false),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
 
   Widget _buildPaymentOption(String title, String value, bool isSelected) {
     return Container(
@@ -912,31 +908,11 @@ class _HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         height: 50,
         child: ElevatedButton(
-          onPressed: () {
-            final testOrder = OrderModel(
-              id: 998,
-              orderNumber: 'TEST-002',
-              clientName: 'Тестовый клиент 2',
-              clientPhone: '+7900000001',
-              pickupAddress: 'Тестовый адрес А',
-              pickupLatitude: 55.751244,
-              pickupLongitude: 37.617494,
-              destinationAddress: 'Тестовый адрес Б',
-              destinationLatitude: 55.761244,
-              destinationLongitude: 37.627494,
-              price: 600.0,
-              status: 'accepted',
-              taxiparkId: _currentTaxiparkId ?? 1,
-              driverId: _currentDriverId,
-              createdAt: DateTime.now(),
-              notes: 'Тестовый заказ 2',
-            );
+          onPressed: () async {
+            await DriverStatusService().goOnline();
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => NavigationScreen(
-                  order: testOrder,
-                  driverId: _currentDriverId ?? 1,
-                ),
+                builder: (context) => const OnlineNavigationScreen(),
               ),
             );
           },

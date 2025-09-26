@@ -1,15 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:dgis_mobile_sdk_full/dgis.dart' as sdk;
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'services/auth_service.dart';
+import 'services/firebase_messaging_service.dart';
+import 'services/websocket_service.dart';
+import 'services/order_service.dart';
 import 'styles/app_theme.dart';
 import 'screens/auth/phone_auth_screen.dart';
 import 'screens/main/main_app_screen.dart';
+import 'screens/order/new_order_screen.dart';
+import 'screens/order/order_execution_screen.dart';
 
 late sdk.Context sdkContext;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    // Инициализируем Firebase
+    await Firebase.initializeApp();
+    print('✅ Firebase инициализирован');
+    
+    // Инициализируем Firebase Messaging
+    await FirebaseMessagingService().initialize();
+    print('✅ Firebase Messaging инициализирован');
+  } catch (e) {
+    print('❌ Ошибка инициализации Firebase: $e');
+  }
   
   try {
     // Загружаем ключ из assets
@@ -42,6 +60,11 @@ class TaxiApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
+      routes: {
+        '/new_order': (context) => const NewOrderScreen(orderData: {}),
+        '/order_execution': (context) => const OrderExecutionScreen(),
+      },
     );
   }
 }
