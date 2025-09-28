@@ -16,15 +16,10 @@ import '../diagnostics/diagnostics_screen.dart';
 import '../photocontrol/photocontrol_screen.dart';
 import '../streethail/street_hail_screen.dart';
 import '../tips/useful_tips_screen.dart';
-import '../navigation/navigation_screen.dart';
-import '../navigation/order_notification_screen.dart';
 import '../navigation/online_navigation_screen.dart';
-import '../order/new_order_screen.dart';
 import '../../services/diagnostics_service.dart';
 import '../../services/websocket_service.dart';
-import '../../services/order_service.dart';
 import '../../services/driver_status_service.dart';
-import '../../models/order_model.dart';
 
 class MainAppScreen extends StatefulWidget {
   const MainAppScreen({super.key});
@@ -60,7 +55,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
   final WebSocketService _webSocketService = WebSocketService();
-  final OrderService _orderService = OrderService();
   int? _currentDriverId;
   int? _currentTaxiparkId;
   Map<String, dynamic>? _driverData;
@@ -70,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _currentTariff = 'Эконом';
   bool _isLoading = true;
   int _diagnosticsIssuesCount = 0;
+  bool _canGoOnline = false;
 
   @override
   void initState() {
@@ -88,7 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
         
         if (_currentDriverId != null && _currentTaxiparkId != null) {
           await _webSocketService.connect();
-          _webSocketService.messageStream.listen(_handleWebSocketMessage);
         }
       }
     } catch (e) {
@@ -96,52 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _handleWebSocketMessage(Map<String, dynamic> message) {
-    if (!mounted) return;
-    
-    if (message['type'] == 'new_order') {
-      final orderData = message['data'];
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => NewOrderScreen(orderData: orderData),
-        ),
-      );
-    }
-  }
-
-  Future<void> _acceptOrder(OrderModel order) async {
-    try {
-      await _orderService.acceptOrder(order.id, _currentDriverId!);
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => NavigationScreen(
-              order: order,
-              driverId: _currentDriverId!,
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка принятия заказа: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _declineOrder(OrderModel order) async {
-    try {
-      await _orderService.cancelOrder(order.id, _currentDriverId!);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка отклонения заказа: $e')),
-        );
-      }
-    }
-  }
 
   Future<void> _ensureOfflineStatus() async {
     try {
@@ -263,10 +211,16 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _diagnosticsIssuesCount = DiagnosticsService.instance.getUnresolvedIssuesCount(diagnosticsData);
+          _canGoOnline = diagnosticsData.hasAllRequirements;
         });
       }
     } catch (e) {
       print('❌ Ошибка загрузки диагностики: $e');
+      if (mounted) {
+        setState(() {
+          _canGoOnline = false;
+        });
+      }
     }
   }
 
@@ -664,34 +618,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildMenuRow('Полезные советы', null, onTap: () {
             _navigateToOfflinePage(const UsefulTipsScreen());
           }),
-        _buildMenuRow('Выполнить тестовый заказ', null, onTap: () {
-            final testOrder = OrderModel(
-              id: 999,
-              orderNumber: 'TEST-001',
-              clientName: 'Тестовый клиент',
-              clientPhone: '+7900000000',
-              pickupAddress: 'Тестовый адрес А',
-              pickupLatitude: 55.751244,
-              pickupLongitude: 37.617494,
-              destinationAddress: 'Тестовый адрес Б',
-              destinationLatitude: 55.761244,
-              destinationLongitude: 37.627494,
-              price: 500.0,
-              status: 'accepted',
-              taxiparkId: _currentTaxiparkId ?? 1,
-              driverId: _currentDriverId,
-              createdAt: DateTime.now(),
-              notes: 'Тестовый заказ для проверки навигации',
-            );
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => NavigationScreen(
-                  order: testOrder,
-                  driverId: _currentDriverId ?? 1,
-                ),
-              ),
-            );
-        }),
           _buildMenuRow('Выход из Eco Такси', null, onTap: _handleLogout),
         ],
       ),
@@ -904,35 +830,78 @@ class _HomeScreenState extends State<HomeScreen> {
       color: Colors.white,
       margin: const EdgeInsets.only(top: 1),
       padding: const EdgeInsets.all(20),
-      child: SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: ElevatedButton(
-          onPressed: () async {
-            await DriverStatusService().goOnline();
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const OnlineNavigationScreen(),
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _canGoOnline ? () async {
+                await DriverStatusService().goOnline();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const OnlineNavigationScreen(),
+                  ),
+                );
+              } : () {
+                // Навигация на страницу диагностики
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => DiagnosticsScreen(
+                      currentTariff: _currentTariff,
+                      currentBalance: _balanceData?.currentBalance,
+                    ),
+                  ),
+                ).then((_) {
+                  // Обновляем данные после возврата с экрана диагностики
+                  _loadDiagnosticsData();
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _canGoOnline ? const Color(0xFF264b47) : const Color(0xFF666666),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
               ),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF264b47),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            elevation: 0,
-          ),
-          child: const Text(
-            'На линию',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
+              child: Text(
+                'На линию',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
-        ),
+          if (!_canGoOnline) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => DiagnosticsScreen(
+                      currentTariff: _currentTariff,
+                      currentBalance: _balanceData?.currentBalance,
+                    ),
+                  ),
+                ).then((_) {
+                  _loadDiagnosticsData();
+                });
+              },
+              child: Text(
+                'Выполните все требования. Для подробностей перейдите на страницу Диагностика',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w400,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

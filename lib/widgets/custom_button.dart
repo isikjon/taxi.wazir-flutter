@@ -10,6 +10,8 @@ class CustomButton extends StatelessWidget {
   final bool isSecondary;
   final IconData? icon;
   final double? width;
+  final Color? backgroundColor;
+  final Color? textColor;
 
   const CustomButton({
     super.key,
@@ -19,6 +21,8 @@ class CustomButton extends StatelessWidget {
     this.isSecondary = false,
     this.icon,
     this.width,
+    this.backgroundColor,
+    this.textColor,
   });
 
   @override
@@ -28,7 +32,7 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSecondary ? AppColors.surface : AppColors.primary,
+          backgroundColor: backgroundColor ?? (isSecondary ? AppColors.surface : AppColors.primary),
           foregroundColor: isSecondary ? AppColors.primary : AppColors.surface,
           elevation: AppSpacing.elevation,
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
@@ -56,7 +60,7 @@ class CustomButton extends StatelessWidget {
                   Text(
                     text,
                     style: AppTextStyles.button.copyWith(
-                      color: isSecondary ? AppColors.primary : AppColors.surface,
+                      color: textColor ?? (isSecondary ? AppColors.primary : AppColors.surface),
                     ),
                   ),
                 ],

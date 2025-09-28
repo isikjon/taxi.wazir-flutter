@@ -39,6 +39,12 @@ class AppTextStyles {
     color: AppColors.textPrimary,
   );
   
+  static TextStyle get body => GoogleFonts.montserrat(
+    fontSize: 14,
+    fontWeight: FontWeight.normal,
+    color: AppColors.textPrimary,
+  );
+  
   static TextStyle get bodySmall => GoogleFonts.montserrat(
     fontSize: 12,
     fontWeight: FontWeight.normal,

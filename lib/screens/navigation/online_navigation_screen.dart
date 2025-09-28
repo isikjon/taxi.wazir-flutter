@@ -5,6 +5,11 @@ import 'package:geolocator/geolocator.dart';
 import '../../main.dart' show sdkContext;
 import '../../styles/app_colors.dart';
 import '../../services/driver_status_service.dart';
+import '../../services/route_service.dart';
+import '../../services/location_detection_service.dart';
+import '../../services/order_service.dart';
+import '../../services/websocket_service.dart';
+import '../../widgets/order_widget.dart';
 
 class OnlineNavigationScreen extends StatefulWidget {
   const OnlineNavigationScreen({super.key});
@@ -19,7 +24,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
   sdk.NavigationManager? _navigationManager;
   sdk.MyLocationMapObjectSource? _locationSource;
   
-  // Контроллеры для виджетов 2ГИС
   sdk.ManeuverController? _maneuverController;
   sdk.SpeedLimitController? _speedLimitController;
   sdk.ZoomController? _zoomController;
@@ -33,18 +37,22 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
   bool _isNavigationActive = false;
   bool _isLocationPermissionGranted = false;
   bool _areWidgetsReady = false;
-  String _currentStatus = 'Инициализация...';
-  bool _isFreeRoamActive = false;
   bool _isOnline = false;
 
-  // Переменные для навигации
-  sdk.TrafficRouter? _trafficRouter;
-  sdk.RouteMapObjectSource? _routeSource;
+  final RouteService _routeService = RouteService();
+  final LocationDetectionService _locationDetectionService = LocationDetectionService();
+  final OrderService _orderService = OrderService();
+  final WebSocketService _webSocketService = WebSocketService();
   
-  // Логирование
+  Map<String, dynamic>? _currentOrder;
+  OrderWidgetState _orderWidgetState = OrderWidgetState.accepted;
+  String? _estimatedArrival;
+  String? _currentOrderStatus;
+  String? _balanceErrorMessage;
+  double? _requiredAmount;
+  double? _currentBalance;
+  
   final List<String> _logs = [];
-  
-  // Heartbeat для подтверждения активности
   Timer? _heartbeatTimer;
   
   @override
@@ -54,6 +62,7 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     _addLog('🚀 Инициализация экрана навигации');
     _goOnline();
     _initializeMap();
+    _initializeOrderHandling();
   }
 
   @override
@@ -65,6 +74,8 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     if (_navigationManager != null && _isNavigationActive) {
       _navigationManager!.stop();
     }
+    _routeService.dispose();
+    _locationDetectionService.dispose();
     super.dispose();
   }
 
@@ -103,12 +114,8 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     }
   }
 
+
   void _updateStatus(String status) {
-    if (mounted) {
-      setState(() {
-        _currentStatus = status;
-      });
-    }
     _addLog('📊 Статус: $status');
   }
 
@@ -172,7 +179,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
       _mapController = sdk.MapWidgetController();
       _addLog('✅ MapWidgetController создан');
       
-      // Устанавливаем таймаут для инициализации карты
       bool mapReceived = false;
       
       _mapController.getMapAsync((map) {
@@ -184,7 +190,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
         }
       });
       
-      // Таймаут 10 секунд
       await Future.delayed(const Duration(seconds: 10));
       if (!mapReceived) {
         _addLog('⚠️ Таймаут инициализации карты, продолжаем без карты');
@@ -207,30 +212,19 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
       _addLog('🔧 Настройка источников карты');
       _updateStatus('Настройка карты...');
       
-      // Настройка источника местоположения
       _locationSource = sdk.MyLocationMapObjectSource(sdkContext);
       _map!.addSource(_locationSource!);
       _addLog('✅ Источник местоположения добавлен');
       
-      // Инициализация TrafficRouter для построения маршрутов
-      _trafficRouter = sdk.TrafficRouter(sdkContext);
-      _routeSource = sdk.RouteMapObjectSource(sdkContext, sdk.RouteVisualizationType.normal);
-      _map!.addSource(_routeSource!);
-      _addLog('✅ TrafficRouter и RouteSource инициализированы');
+      _routeService.initialize(_map!);
+      _addLog('✅ RouteService инициализирован');
       
-      // Инициализация NavigationManager
       _initializeNavigationManager();
-      
-      // Проверка разрешений на геолокацию
       _checkLocationPermissions();
-      
-      // Центрирование карты
       _centerMapOnCurrentLocation();
-      
       
       _addLog('✅ Карта полностью инициализирована');
       
-      // Инициализируем виджеты после небольшой задержки
       Future.delayed(const Duration(milliseconds: 1000), () {
         _initializeWidgets();
       });
@@ -250,7 +244,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
       _navigationManager = sdk.NavigationManager(sdkContext);
       _addLog('✅ NavigationManager создан');
       
-      // Добавляем карту в NavigationManager только если карта доступна
       if (_map != null) {
         _navigationManager!.mapManager.addMap(_map!);
         _addLog('✅ Карта добавлена в NavigationManager');
@@ -259,13 +252,10 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
       }
       
       _addLog('✅ NavigationManager готов к работе');
-      
-      // Запускаем режим свободной навигации
       _startFreeRoam();
       
     } catch (e) {
       _addLog('❌ Ошибка инициализации NavigationManager: $e');
-      // Не бросаем исключение, продолжаем работу
     }
   }
 
@@ -273,7 +263,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     try {
       if (_navigationManager != null) {
         _navigationManager!.startFreeRoam();
-        _isFreeRoamActive = true;
         _addLog('✅ Режим свободной навигации запущен');
         _updateStatus('Свободная навигация активна');
       }
@@ -352,7 +341,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
       
     } catch (e) {
       _addLog('❌ Ошибка центрирования карты: $e');
-      // Центрируем на Бишкеке как fallback
       await _centerMapOnBishkek();
     }
   }
@@ -384,7 +372,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
       _addLog('🎛️ Инициализация 2GIS виджетов');
       
       if (_navigationManager != null && _map != null) {
-        // Создаем контроллеры для виджетов 2ГИС
         _maneuverController = sdk.ManeuverController(navigationManager: _navigationManager!);
         _speedLimitController = sdk.SpeedLimitController(navigationManager: _navigationManager!);
         _zoomController = sdk.ZoomController(map: _map!);
@@ -409,10 +396,259 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     }
   }
 
+  void _initializeOrderHandling() {
+    _webSocketService.messageStream.listen(_handleWebSocketMessage);
+    _orderService.orderStream.listen(_handleOrderUpdate);
+    _routeService.routeStream.listen(_handleRouteUpdate);
+    _locationDetectionService.locationStream.listen(_handleLocationUpdate);
+  }
 
+  void _handleWebSocketMessage(Map<String, dynamic> message) {
+    if (!mounted) return;
+    
+    if (message['type'] == 'new_order') {
+      final orderData = message['data'];
+      setState(() {
+        _currentOrder = orderData;
+        _orderWidgetState = OrderWidgetState.newOrder;
+      });
+      _addLog('📦 Получен новый заказ: ${orderData['order_number']}');
+    } else if (message['type'] == 'order_status_update') {
+      final orderData = message['data'];
+      _handleOrderUpdate(orderData);
+    }
+  }
 
+  void _handleOrderUpdate(Map<String, dynamic> order) {
+    if (!mounted) return;
+    
+    if (order.isNotEmpty) {
+      setState(() {
+        _currentOrder = order;
+        _currentOrderStatus = _getStatusText(order['status']);
+        _orderWidgetState = _getOrderWidgetState(order['status']);
+      });
+      
+      final status = order['status'];
+      if (status == 'accepted') {
+        _startLocationMonitoring();
+      } else if (status == 'navigating_to_a') {
+        _startNavigationToClient();
+      } else if (status == 'navigating_to_b') {
+        _startNavigationToDestination();
+      } else if (status == 'completed') {
+        _locationDetectionService.stopMonitoring();
+        _routeService.clearRoute();
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _currentOrder = null;
+              _orderWidgetState = OrderWidgetState.newOrder;
+            });
+          }
+        });
+      }
+    } else {
+      setState(() {
+        _currentOrder = null;
+        _orderWidgetState = OrderWidgetState.newOrder;
+      });
+      _locationDetectionService.stopMonitoring();
+      _routeService.clearRoute();
+    }
+  }
 
+  OrderWidgetState _getOrderWidgetState(String? status) {
+    switch (status) {
+      case 'received':
+        return OrderWidgetState.newOrder;
+      case 'accepted':
+        return OrderWidgetState.accepted;
+      case 'navigating_to_a':
+        return OrderWidgetState.navigatingToA;
+      case 'arrived_at_a':
+        return OrderWidgetState.arrivedAtA;
+      case 'navigating_to_b':
+        return OrderWidgetState.navigatingToB;
+      case 'completed':
+        return OrderWidgetState.completed;
+      default:
+        return OrderWidgetState.newOrder;
+    }
+  }
 
+  void _handleRouteUpdate(Map<String, dynamic> route) {
+    if (!mounted) return;
+    
+    if (route.isNotEmpty) {
+      setState(() {
+        _estimatedArrival = _routeService.getEstimatedArrival();
+      });
+    }
+  }
+
+  void _handleLocationUpdate(Map<String, dynamic> location) {
+    if (!mounted || _currentOrder == null) return;
+    
+    final status = _currentOrder!['status'];
+    final nearPickup = location['near_pickup'] as bool;
+    final nearDestination = location['near_destination'] as bool;
+    
+    if (status == 'navigating_to_a' && nearPickup) {
+      setState(() {
+        _orderWidgetState = OrderWidgetState.arrivedAtA;
+      });
+      _addLog('📍 Прибыли к клиенту');
+    } else if (status == 'navigating_to_b' && nearDestination) {
+      setState(() {
+        _orderWidgetState = OrderWidgetState.completed;
+      });
+      _addLog('📍 Прибыли к точке назначения');
+    }
+  }
+
+  String _getStatusText(String? status) {
+    switch (status) {
+      case 'accepted':
+        return 'Заказ принят';
+      case 'navigating_to_a':
+        return 'Едем к клиенту';
+      case 'arrived_at_a':
+        return 'Прибыли к клиенту';
+      case 'navigating_to_b':
+        return 'Везем клиента';
+      case 'completed':
+        return 'Заказ завершен';
+      default:
+        return 'Ожидание заказов';
+    }
+  }
+
+  Future<void> _acceptOrder() async {
+    if (_currentOrder == null) return;
+    
+    try {
+      await _orderService.acceptOrder(_currentOrder!['id']);
+      _addLog('✅ Заказ принят: ${_currentOrder!['order_number']}');
+    } catch (e) {
+      if (e is InsufficientBalanceException) {
+        setState(() {
+          _orderWidgetState = OrderWidgetState.insufficientBalance;
+          _balanceErrorMessage = e.message;
+          _requiredAmount = e.requiredAmount;
+          _currentBalance = e.currentBalance;
+        });
+        _addLog('❌ Недостаточно средств: ${e.message}');
+      } else {
+        _addLog('❌ Ошибка принятия заказа: $e');
+      }
+    }
+  }
+
+  Future<void> _rejectOrder() async {
+    if (_currentOrder == null) return;
+    
+    try {
+      await _orderService.rejectOrder(_currentOrder!['id']);
+      setState(() {
+        _currentOrder = null;
+        _orderWidgetState = OrderWidgetState.newOrder;
+        _balanceErrorMessage = null;
+        _requiredAmount = null;
+        _currentBalance = null;
+      });
+      _addLog('❌ Заказ отклонен: ${_currentOrder!['order_number']}');
+    } catch (e) {
+      _addLog('❌ Ошибка отклонения заказа: $e');
+    }
+  }
+
+  Future<void> _startNavigationToA() async {
+    if (_currentOrder == null) return;
+    
+    try {
+      await _orderService.updateOrderStatusToServer('navigating_to_a');
+      _startNavigationToClient();
+      _addLog('🧭 Начинаем навигацию к клиенту');
+    } catch (e) {
+      _addLog('❌ Ошибка начала навигации: $e');
+    }
+  }
+
+  Future<void> _arrivedAtClient() async {
+    if (_currentOrder == null) return;
+    
+    try {
+      await _orderService.updateOrderStatusToServer('arrived_at_a');
+      _addLog('📍 Прибыли к клиенту');
+    } catch (e) {
+      _addLog('❌ Ошибка обновления статуса: $e');
+    }
+  }
+
+  Future<void> _startTrip() async {
+    if (_currentOrder == null) return;
+    
+    try {
+      await _orderService.updateOrderStatusToServer('navigating_to_b');
+      _startNavigationToDestination();
+      _addLog('🚗 Начинаем поездку');
+    } catch (e) {
+      _addLog('❌ Ошибка начала поездки: $e');
+    }
+  }
+
+  Future<void> _completeOrder() async {
+    if (_currentOrder == null) return;
+    
+    try {
+      await _orderService.updateOrderStatusToServer('completed');
+      _addLog('✅ Заказ завершен: ${_currentOrder!['order_number']}');
+    } catch (e) {
+      _addLog('❌ Ошибка завершения заказа: $e');
+    }
+  }
+
+  Future<void> _startNavigationToClient() async {
+    if (_currentOrder == null) return;
+    
+    final pickupLat = _currentOrder!['pickup_latitude'];
+    final pickupLon = _currentOrder!['pickup_longitude'];
+    
+    if (pickupLat != null && pickupLon != null) {
+      await _routeService.buildRouteToClient(pickupLat, pickupLon);
+      _startLocationMonitoring();
+    }
+  }
+
+  Future<void> _startNavigationToDestination() async {
+    if (_currentOrder == null) return;
+    
+    final destinationLat = _currentOrder!['destination_latitude'];
+    final destinationLon = _currentOrder!['destination_longitude'];
+    
+    if (destinationLat != null && destinationLon != null) {
+      await _routeService.buildRouteToDestination(destinationLat, destinationLon);
+    }
+  }
+
+  void _startLocationMonitoring() {
+    if (_currentOrder == null) return;
+    
+    final pickupLat = _currentOrder!['pickup_latitude'];
+    final pickupLon = _currentOrder!['pickup_longitude'];
+    final destinationLat = _currentOrder!['destination_latitude'];
+    final destinationLon = _currentOrder!['destination_longitude'];
+    
+    if (pickupLat != null && pickupLon != null) {
+      _locationDetectionService.startMonitoring(
+        pickupLat: pickupLat,
+        pickupLon: pickupLon,
+        destinationLat: destinationLat,
+        destinationLon: destinationLon,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -441,14 +677,13 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
         home: Scaffold(
         body: Stack(
         children: [
-          // 2GIS карта на весь экран с виджетами
           sdk.MapWidget(
             sdkContext: sdkContext,
             controller: _mapController,
             mapOptions: sdk.MapOptions(
               position: sdk.CameraPosition(
                 point: sdk.GeoPoint(
-                  latitude: sdk.Latitude(42.8746), // Бишкек
+                      latitude: sdk.Latitude(42.8746),
                   longitude: sdk.Longitude(74.5698),
                 ),
                 zoom: sdk.Zoom(12.0),
@@ -456,9 +691,7 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
             ),
             child: Stack(
               children: [
-                // Виджеты 2ГИС навигации
                 if (_areWidgetsReady) ...[
-                  // 1. ManeuverWidget для отображения информации о следующем манёвре
                   if (_maneuverController != null)
                     Positioned(
                       top: MediaQuery.of(context).padding.top + 80,
@@ -468,7 +701,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // 2. SpeedLimitWidget для отображения текущей скорости и скоростного ограничения
                   if (_speedLimitController != null)
                     Positioned(
                       top: MediaQuery.of(context).padding.top + 140,
@@ -478,7 +710,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // 3. NavigationZoomWidget для масштабирования карты
                   if (_zoomController != null)
                     Positioned(
                       bottom: 220,
@@ -488,7 +719,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // 4. NavigationCompassWidget для отображения угла поворота карты
                   if (_compassController != null)
                     Positioned(
                       bottom: 340,
@@ -498,7 +728,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // 5. NavigationMyLocationWidget для управления слежением за местоположением
                   if (_myLocationController != null)
                     Positioned(
                       bottom: 400,
@@ -508,7 +737,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // 6. TrafficLineWidget для отображения уровня пробок на маршруте
                   if (_trafficLineController != null)
                     Positioned(
                       bottom: 140,
@@ -518,7 +746,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // 7. DashboardWidget для отображения информации в режиме свободной навигации
                   if (_dashboardController != null)
                     Positioned(
                       bottom: 20,
@@ -536,7 +763,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // 8. NavigationTrafficWidget для управления видимостью пробок на карте
                   if (_trafficController != null)
                     Positioned(
                       top: MediaQuery.of(context).padding.top + 260,
@@ -546,7 +772,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // 9. NavigationParkingWidget для управления видимостью парковок на карте
                   if (_parkingController != null)
                     Positioned(
                       top: MediaQuery.of(context).padding.top + 320,
@@ -560,7 +785,6 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
             ),
           ),
           
-          // Кнопка закрытия
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
@@ -587,6 +811,23 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
             ),
           ),
           
+              
+              if (_currentOrder != null)
+                OrderWidget(
+                  orderData: _currentOrder!,
+                  state: _orderWidgetState,
+                  onAccept: _acceptOrder,
+                  onReject: _rejectOrder,
+                  onArrivedAtClient: _arrivedAtClient,
+                  onStartTrip: _startTrip,
+                  onCompleted: _completeOrder,
+                  onStartNavigationToA: _startNavigationToA,
+                  estimatedArrival: _estimatedArrival,
+                  currentStatus: _currentOrderStatus,
+                  balanceErrorMessage: _balanceErrorMessage,
+                  requiredAmount: _requiredAmount,
+                  currentBalance: _currentBalance,
+                ),
         ],
       ),
       ),

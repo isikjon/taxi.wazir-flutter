@@ -5,12 +5,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_messaging_service.dart';
 import 'services/websocket_service.dart';
-import 'services/order_service.dart';
+import 'services/location_service.dart';
+import 'services/navigation_service.dart';
 import 'styles/app_theme.dart';
 import 'screens/auth/phone_auth_screen.dart';
 import 'screens/main/main_app_screen.dart';
-import 'screens/order/new_order_screen.dart';
-import 'screens/order/order_execution_screen.dart';
 
 late sdk.Context sdkContext;
 
@@ -41,6 +40,9 @@ void main() async {
     // Инициализируем SDK
     sdkContext = await sdk.DGis.initialize();
     print('2GIS SDK инициализирован успешно с ключом: ${apiKey.substring(0, 8)}...');
+    
+    // Инициализируем сервис навигации
+    NavigationService().initialize(sdkContext);
   } catch (e) {
     print('Ошибка инициализации 2GIS SDK: $e');
     // Не прерываем запуск приложения, просто логируем ошибку
@@ -61,10 +63,6 @@ class TaxiApp extends StatelessWidget {
       home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      routes: {
-        '/new_order': (context) => const NewOrderScreen(orderData: {}),
-        '/order_execution': (context) => const OrderExecutionScreen(),
-      },
     );
   }
 }
@@ -89,18 +87,30 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<void> _checkAuthStatus() async {
     try {
       final isLoggedIn = await AuthService.isLoggedIn();
-      final driverData = await AuthService.getCurrentDriver();
       
       setState(() {
         _isLoggedIn = isLoggedIn;
         _isLoading = false;
       });
+
+      if (isLoggedIn) {
+        _initializeServices();
+      }
     } catch (e) {
       setState(() {
         _isLoggedIn = false;
         _isLoading = false;
       });
     }
+  }
+
+  void _initializeServices() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        WebSocketService().connect();
+        LocationService().requestLocationPermission();
+      }
+    });
   }
 
   @override

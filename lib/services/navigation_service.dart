@@ -1,182 +1,154 @@
 import 'dart:async';
-import '../models/order_model.dart';
-import '../models/location_model.dart';
-import 'order_service.dart';
-import 'websocket_service.dart';
+import 'location_service.dart';
 
 class NavigationService {
   static final NavigationService _instance = NavigationService._internal();
   factory NavigationService() => _instance;
   NavigationService._internal();
 
-  dynamic _navigationManager;
-  dynamic _trafficRouter;
-  dynamic _locationService;
-  dynamic _map;
+  bool _isNavigating = false;
+  Timer? _navigationTimer;
+  Map<String, dynamic>? _currentRoute;
 
-  OrderModel? _currentOrder;
-  String _currentStatus = 'idle';
-  LocationModel? _currentLocation;
-  LocationModel? _pointA;
-  LocationModel? _pointB;
+  bool get isNavigating => _isNavigating;
+  Map<String, dynamic>? get currentRoute => _currentRoute;
 
-  final StreamController<String> _statusController = StreamController<String>.broadcast();
-  final StreamController<LocationModel> _locationController = StreamController<LocationModel>.broadcast();
+  void initialize(dynamic context) {
+    print('✅ [Navigation] Сервис навигации инициализирован');
+  }
 
-  Stream<String> get statusStream => _statusController.stream;
-  Stream<LocationModel> get locationStream => _locationController.stream;
-
-  String get currentStatus => _currentStatus;
-  OrderModel? get currentOrder => _currentOrder;
-
-  void initialize(dynamic map) {
-    _map = map;
+  Future<Map<String, dynamic>?> buildRoute(
+    double startLat, double startLon,
+    double endLat, double endLon,
+  ) async {
     try {
-      _navigationManager = null;
-      _trafficRouter = null;
-      _locationService = null;
-      _startLocationTracking();
+      print('🔍 [Navigation] Строим маршрут от ($startLat, $startLon) до ($endLat, $endLon)');
+
+      final distance = LocationService().calculateDistance(startLat, startLon, endLat, endLon);
+      final duration = (distance / 50 * 60).round();
+
+      _currentRoute = {
+        'start_lat': startLat,
+        'start_lon': startLon,
+        'end_lat': endLat,
+        'end_lon': endLon,
+        'distance': distance,
+        'duration': duration,
+        'points': [
+          {'lat': startLat, 'lon': startLon},
+          {'lat': endLat, 'lon': endLon},
+        ]
+      };
+
+      print('✅ [Navigation] Маршрут построен успешно');
+      return _currentRoute;
     } catch (e) {
-      print('Navigation initialization error: $e');
+      print('❌ [Navigation] Ошибка построения маршрута: $e');
+      return null;
     }
   }
 
-  void _startLocationTracking() {
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_currentOrder != null) {
-        _checkArrival();
-      }
+  Future<Map<String, dynamic>?> buildRouteToClient(
+    double clientLat, double clientLon,
+  ) async {
+    final currentPos = LocationService().currentPosition;
+    if (currentPos == null) {
+      print('❌ [Navigation] Текущее местоположение неизвестно');
+      return null;
+    }
+
+    return await buildRoute(
+      currentPos.latitude,
+      currentPos.longitude,
+      clientLat,
+      clientLon,
+    );
+  }
+
+  Future<Map<String, dynamic>?> buildRouteToDestination(
+    double destinationLat, double destinationLon,
+  ) async {
+    final currentPos = LocationService().currentPosition;
+    if (currentPos == null) {
+      print('❌ [Navigation] Текущее местоположение неизвестно');
+      return null;
+    }
+
+    return await buildRoute(
+      currentPos.latitude,
+      currentPos.longitude,
+      destinationLat,
+      destinationLon,
+    );
+  }
+
+  void startNavigation() {
+    if (_isNavigating || _currentRoute == null) return;
+
+    _isNavigating = true;
+    print('🔍 [Navigation] Начинаем навигацию');
+
+    _navigationTimer = Timer.periodic(Duration(seconds: 10), (timer) {
+      _checkNavigationProgress();
     });
   }
 
-  void _checkArrival() {
-    if (_currentLocation == null || _currentOrder == null) return;
+  void stopNavigation() {
+    if (!_isNavigating) return;
 
-    if (_currentStatus == 'navigating_to_a' && _pointA != null) {
-      if (_currentLocation!.isNear(_pointA!, 1.0)) {
-        _onArrivedAtA();
+    _isNavigating = false;
+    _navigationTimer?.cancel();
+    _navigationTimer = null;
+    print('🔍 [Navigation] Останавливаем навигацию');
+  }
+
+  void _checkNavigationProgress() {
+    if (_currentRoute == null) return;
+
+    final currentPos = LocationService().currentPosition;
+    if (currentPos == null) return;
+
+    try {
+      final endLat = _currentRoute!['end_lat'];
+      final endLon = _currentRoute!['end_lon'];
+      
+      final distanceToEnd = LocationService().calculateDistance(
+        currentPos.latitude,
+        currentPos.longitude,
+        endLat,
+        endLon,
+      );
+
+      print('🔍 [Navigation] Расстояние до конца маршрута: ${distanceToEnd.toStringAsFixed(0)} м');
+
+      if (distanceToEnd < 50) {
+        print('✅ [Navigation] Прибыли в точку назначения');
+        stopNavigation();
       }
-    } else if (_currentStatus == 'navigating_to_b' && _pointB != null) {
-      if (_currentLocation!.isNear(_pointB!, 1.0)) {
-        _onArrivedAtB();
-      }
+    } catch (e) {
+      print('❌ [Navigation] Ошибка проверки прогресса: $e');
     }
   }
 
-  Future<void> startNavigation(OrderModel order, int driverId) async {
-    _currentOrder = order;
-    _pointA = LocationModel(
-      latitude: order.pickupLatitude!,
-      longitude: order.pickupLongitude!,
-      timestamp: DateTime.now(),
-    );
-    _pointB = LocationModel(
-      latitude: order.destinationLatitude!,
-      longitude: order.destinationLongitude!,
-      timestamp: DateTime.now(),
-    );
-
-    await _buildRouteToA();
-    await _startNavigationToA(driverId);
+  double? getRouteDistance() {
+    return _currentRoute?['distance'];
   }
 
-  Future<void> _buildRouteToA() async {
-    print('Building route to point A');
+  int? getRouteDuration() {
+    return _currentRoute?['duration'];
   }
 
-  Future<void> _buildRouteToB() async {
-    print('Building route to point B');
+  List<Map<String, double>>? getRoutePoints() {
+    return _currentRoute?['points']?.cast<Map<String, double>>();
   }
 
-  Future<void> _startNavigationToA(int driverId) async {
-    _currentStatus = 'navigating_to_a';
-    if (!_statusController.isClosed) {
-      _statusController.add(_currentStatus);
-    }
-    
-    if (_currentOrder != null) {
-      await OrderService().startNavigationToA(_currentOrder!.id, driverId);
-      await WebSocketService().sendOrderStatus(_currentOrder!.id, 'navigating_to_a');
-    }
-  }
-
-  Future<void> _onArrivedAtA() async {
-    if (_currentOrder == null) return;
-
-    _currentStatus = 'arrived_at_a';
-    if (!_statusController.isClosed) {
-      _statusController.add(_currentStatus);
-    }
-    
-    await OrderService().arrivedAtA(_currentOrder!.id, _currentOrder!.driverId!);
-    await WebSocketService().sendOrderStatus(_currentOrder!.id, 'arrived_at_a');
-
-    await Future.delayed(const Duration(seconds: 2));
-    await _startNavigationToB();
-  }
-
-  Future<void> _startNavigationToB() async {
-    if (_currentOrder == null) return;
-
-    await _buildRouteToB();
-    
-    _currentStatus = 'navigating_to_b';
-    if (!_statusController.isClosed) {
-      _statusController.add(_currentStatus);
-    }
-    
-    await OrderService().startNavigationToB(_currentOrder!.id, _currentOrder!.driverId!);
-    await WebSocketService().sendOrderStatus(_currentOrder!.id, 'navigating_to_b');
-  }
-
-  Future<void> _onArrivedAtB() async {
-    if (_currentOrder == null) return;
-
-    _currentStatus = 'completed';
-    if (!_statusController.isClosed) {
-      _statusController.add(_currentStatus);
-    }
-    
-    await OrderService().completeOrder(_currentOrder!.id, _currentOrder!.driverId!);
-    await WebSocketService().sendOrderStatus(_currentOrder!.id, 'completed');
-
-    _stopNavigation();
-  }
-
-  Future<void> cancelNavigation(int driverId) async {
-    if (_currentOrder != null) {
-      await OrderService().cancelOrder(_currentOrder!.id, driverId);
-      await WebSocketService().sendOrderStatus(_currentOrder!.id, 'cancelled');
-    }
-    
-    _stopNavigation();
-  }
-
-  Future<void> cancelCurrentOrder() async {
-    if (_currentOrder != null && _currentOrder!.driverId != null) {
-      await cancelNavigation(_currentOrder!.driverId!);
-    } else {
-      _stopNavigation();
-    }
-  }
-
-  void _stopNavigation() {
-    _currentOrder = null;
-    _currentStatus = 'idle';
-    _pointA = null;
-    _pointB = null;
-    if (!_statusController.isClosed) {
-      _statusController.add(_currentStatus);
-    }
+  void clearRoute() {
+    _currentRoute = null;
+    stopNavigation();
+    print('🔍 [Navigation] Маршрут очищен');
   }
 
   void dispose() {
-    if (!_statusController.isClosed) {
-      _statusController.close();
-    }
-    if (!_locationController.isClosed) {
-      _locationController.close();
-    }
-    _stopNavigation();
+    stopNavigation();
   }
 }

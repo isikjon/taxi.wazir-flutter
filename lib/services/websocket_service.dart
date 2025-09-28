@@ -35,7 +35,7 @@ class WebSocketService {
       
       print('🔍 [WebSocket] Подключаемся к WebSocket для водителя: $driverId');
       
-      final wsUrl = 'ws://192.168.1.4:8400/ws/orders/driver/$driverId';
+      final wsUrl = 'ws://192.168.1.4:8500/ws/orders/driver/$driverId';
       print('🔍 [WebSocket] URL: $wsUrl');
       
       _webSocket = await WebSocket.connect(wsUrl);
@@ -108,12 +108,26 @@ class WebSocketService {
     });
   }
 
+  void sendMessage(Map<String, dynamic> message) {
+    if (_webSocket != null && _isConnected) {
+      try {
+        _webSocket!.add(json.encode(message));
+        print('🔍 [WebSocket] Сообщение отправлено: $message');
+      } catch (e) {
+        print('❌ [WebSocket] Ошибка отправки сообщения: $e');
+      }
+    } else {
+      print('❌ [WebSocket] WebSocket не подключен');
+    }
+  }
+
   void disconnect() {
     print('🔍 [WebSocket] Отключение WebSocket');
     _reconnectTimer?.cancel();
     _webSocket?.close();
     _isConnected = false;
   }
+
 
   void dispose() {
     disconnect();

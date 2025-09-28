@@ -15,11 +15,13 @@ class AppColors {
   static const Color warning = Color(0xFFFF9800);
   static const Color success = Color(0xFF4CAF50);
   
+  static const Color text = Color(0xFF264b47);
   static const Color textPrimary = Color(0xFF264b47);
   static const Color textSecondary = Color(0xFF9E9E9E);
   static const Color textHint = Color(0xFFBDBDBD);
   
   static const Color divider = Color(0xFFE0E0E0);
+  static const Color border = Color(0xFFE0E0E0);
   static const Color shadow = Color(0x1A000000);
   
   static const Color online = Color(0xFF4CAF50);
