@@ -34,8 +34,8 @@ class WebSocketService {
       final driverId = driver['id'];
       
       print('🔍 [WebSocket] Подключаемся к WebSocket для водителя: $driverId');
-      
-      final wsUrl = 'ws://192.168.1.4:8500/ws/orders/driver/$driverId';
+
+      final wsUrl = 'ws://new.superadmin.taxi.wazir.kg/ws/orders/driver/$driverId';
       print('🔍 [WebSocket] URL: $wsUrl');
       
       _webSocket = await WebSocket.connect(wsUrl);

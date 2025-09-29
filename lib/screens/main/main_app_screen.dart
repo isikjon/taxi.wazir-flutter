@@ -1,3 +1,5 @@
+import 'package:eco_taxi/screens/navigation/test_navigation_screen.dart';
+import 'package:eco_taxi/widgets/button.dart';
 import 'package:flutter/material.dart';
 import '../../styles/app_colors.dart';
 import '../../services/auth_service.dart';
@@ -28,7 +30,6 @@ class MainAppScreen extends StatefulWidget {
   State<MainAppScreen> createState() => _MainAppScreenState();
 }
 
-
 class _MainAppScreenState extends State<MainAppScreen> {
   @override
   Widget build(BuildContext context) {
@@ -37,12 +38,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
         // Предотвращаем возврат на страницу авторизации
         return false;
       },
-      child: Scaffold(
-        body: const HomeScreen(),
-      ),
+      child: Scaffold(body: const HomeScreen()),
     );
   }
-
 }
 
 class HomeScreen extends StatefulWidget {
@@ -80,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (driverData != null) {
         _currentDriverId = driverData['id'];
         _currentTaxiparkId = driverData['taxiparkId'];
-        
+
         if (_currentDriverId != null && _currentTaxiparkId != null) {
           await _webSocketService.connect();
         }
@@ -89,7 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
       print('WebSocket initialization error: $e');
     }
   }
-
 
   Future<void> _ensureOfflineStatus() async {
     try {
@@ -103,9 +100,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<dynamic> _navigateToOfflinePage(Widget page) async {
     await DriverStatusService().goOffline();
     if (mounted) {
-      return await Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => page),
-      );
+      return await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => page));
     }
     return null;
   }
@@ -114,11 +111,11 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       // Показываем полную информацию о API
       await ApiService.printApiInfo();
-      
+
       // Получаем номер телефона из локальных данных для API запросов
       final localDriverData = await AuthService.getCurrentDriver();
       final phoneNumber = localDriverData?['phoneNumber'];
-      
+
       if (phoneNumber != null) {
         // Сначала используем локальные данные для быстрого отображения
         if (mounted && localDriverData != null) {
@@ -126,19 +123,24 @@ class _HomeScreenState extends State<HomeScreen> {
             _driverData = localDriverData;
           });
         }
-        
+
         // Затем пытаемся загрузить актуальные данные с сервера
         try {
-          final driverProfile = await DriverService().getDriverProfile(phoneNumber);
-          final taxiparkData = await DriverService().getDriverTaxipark(phoneNumber);
-          
+          final driverProfile = await DriverService().getDriverProfile(
+            phoneNumber,
+          );
+          final taxiparkData = await DriverService().getDriverTaxipark(
+            phoneNumber,
+          );
+
           if (mounted && driverProfile != null) {
             setState(() {
               // Обновляем данные с сервера
               _driverData = {
                 'id': driverProfile['id'],
                 'phoneNumber': driverProfile['phone_number'],
-                'fullName': '${driverProfile['first_name']} ${driverProfile['last_name']}',
+                'fullName':
+                    '${driverProfile['first_name']} ${driverProfile['last_name']}',
                 'carModel': driverProfile['car_model'],
                 'carNumber': driverProfile['car_number'],
                 'carColor': driverProfile['car_color'],
@@ -163,13 +165,13 @@ class _HomeScreenState extends State<HomeScreen> {
           // Если сервер недоступен, используем локальные данные
         }
       }
-      
+
       // Загружаем баланс водителя
       await _loadBalance();
-      
+
       // Загружаем данные диагностики
       await _loadDiagnosticsData();
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -190,7 +192,9 @@ class _HomeScreenState extends State<HomeScreen> {
       // Получаем номер телефона из текущих данных водителя
       final phoneNumber = _driverData?['phoneNumber'];
       if (phoneNumber != null) {
-        final result = await BalanceService.instance.getDriverBalance(phoneNumber);
+        final result = await BalanceService.instance.getDriverBalance(
+          phoneNumber,
+        );
         if (result['success'] && mounted) {
           setState(() {
             _balanceData = BalanceData.fromJson(result['data']);
@@ -204,13 +208,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadDiagnosticsData() async {
     try {
-      final diagnosticsData = await DiagnosticsService.instance.getDiagnosticsStatus(
-        currentTariff: _currentTariff,
-        currentBalance: _balanceData?.currentBalance,
-      );
+      final diagnosticsData = await DiagnosticsService.instance
+          .getDiagnosticsStatus(
+            currentTariff: _currentTariff,
+            currentBalance: _balanceData?.currentBalance,
+          );
       if (mounted) {
         setState(() {
-          _diagnosticsIssuesCount = DiagnosticsService.instance.getUnresolvedIssuesCount(diagnosticsData);
+          _diagnosticsIssuesCount = DiagnosticsService.instance
+              .getUnresolvedIssuesCount(diagnosticsData);
           _canGoOnline = diagnosticsData.hasAllRequirements;
         });
       }
@@ -258,9 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return Container(
         color: const Color(0xFFF8F8F8),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -268,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final carModel = _driverData?['carModel'] ?? 'Загрузка...';
     final carNumber = _driverData?['carNumber'] ?? 'Загрузка...';
     final taxiparkName = _driverData?['taxiparkName'] ?? 'Загрузка...';
-    
+
     print('Driver data in UI: $_driverData');
     print('Driver name: $driverName');
     print('Car: $carModel, $carNumber');
@@ -290,10 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.primaryWithOpacity10,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF264b47),
-                    width: 2,
-                  ),
+                  border: Border.all(color: const Color(0xFF264b47), width: 2),
                 ),
                 child: Icon(
                   Icons.person,
@@ -359,8 +360,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCalendarSection() {
-    final weekStart = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
-    final weekDays = List.generate(7, (index) => weekStart.add(Duration(days: index)));
+    final weekStart = _selectedDate.subtract(
+      Duration(days: _selectedDate.weekday - 1),
+    );
+    final weekDays = List.generate(
+      7,
+      (index) => weekStart.add(Duration(days: index)),
+    );
 
     return Container(
       margin: const EdgeInsets.only(top: 1),
@@ -378,7 +384,10 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: const BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: AppColors.primaryWithOpacity30, width: 1),
+                bottom: BorderSide(
+                  color: AppColors.primaryWithOpacity30,
+                  width: 1,
+                ),
               ),
             ),
             child: Row(
@@ -387,10 +396,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 IconButton(
                   onPressed: () {
                     setState(() {
-                      _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+                      _selectedDate = _selectedDate.subtract(
+                        const Duration(days: 7),
+                      );
                     });
                   },
-                  icon: const Icon(Icons.chevron_left, size: 24, color: Color(0xFF666666)),
+                  icon: const Icon(
+                    Icons.chevron_left,
+                    size: 24,
+                    color: Color(0xFF666666),
+                  ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -405,10 +420,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 IconButton(
                   onPressed: () {
                     setState(() {
-                      _selectedDate = _selectedDate.add(const Duration(days: 7));
+                      _selectedDate = _selectedDate.add(
+                        const Duration(days: 7),
+                      );
                     });
                   },
-                  icon: const Icon(Icons.chevron_right, size: 24, color: Color(0xFF666666)),
+                  icon: const Icon(
+                    Icons.chevron_right,
+                    size: 24,
+                    color: Color(0xFF666666),
+                  ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -420,15 +441,19 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: const BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: AppColors.primaryWithOpacity30, width: 1),
+                bottom: BorderSide(
+                  color: AppColors.primaryWithOpacity30,
+                  width: 1,
+                ),
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: weekDays.map((day) {
-                final isSelected = day.day == DateTime.now().day && 
-                                  day.month == DateTime.now().month && 
-                                  day.year == DateTime.now().year;
+                final isSelected =
+                    day.day == DateTime.now().day &&
+                    day.month == DateTime.now().month &&
+                    day.year == DateTime.now().year;
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -439,7 +464,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF264b47) : Colors.transparent,
+                      color: isSelected
+                          ? const Color(0xFF264b47)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Center(
@@ -480,9 +507,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  _balanceData?.totalOrders == 0 
-                    ? 'За этот период поездок не было'
-                    : 'Всего заказов выполнено',
+                  _balanceData?.totalOrders == 0
+                      ? 'За этот период поездок не было'
+                      : 'Всего заказов выполнено',
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.primaryWithOpacity60,
@@ -498,16 +525,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildEarningsSection() {
     final weeklyEarnings = _balanceData?.weeklyEarnings ?? 0.0;
-    
+
     return Container(
       color: Colors.white,
       margin: const EdgeInsets.only(top: 1),
       child: Column(
         children: [
-          _buildEarningsRow('По безналу', '${(weeklyEarnings * 0.6).toStringAsFixed(0)} сом'),
-          _buildEarningsRow('Наличными', '${(weeklyEarnings * 0.4).toStringAsFixed(0)} сом'),
-          _buildEarningsRow('Сервис (вычеты)', '${(weeklyEarnings * 0.05).toStringAsFixed(0)} сом (5%)'),
-          _buildEarningsRow('Парк (вычеты)', '${(weeklyEarnings * (_taxiparkData?['commission'] ?? 0.1) / 100).toStringAsFixed(0)} сом (${(_taxiparkData?['commission'] ?? 10).toStringAsFixed(0)}%)'),
+          _buildEarningsRow(
+            'По безналу',
+            '${(weeklyEarnings * 0.6).toStringAsFixed(0)} сом',
+          ),
+          _buildEarningsRow(
+            'Наличными',
+            '${(weeklyEarnings * 0.4).toStringAsFixed(0)} сом',
+          ),
+          _buildEarningsRow(
+            'Сервис (вычеты)',
+            '${(weeklyEarnings * 0.05).toStringAsFixed(0)} сом (5%)',
+          ),
+          _buildEarningsRow(
+            'Парк (вычеты)',
+            '${(weeklyEarnings * (_taxiparkData?['commission'] ?? 0.1) / 100).toStringAsFixed(0)} сом (${(_taxiparkData?['commission'] ?? 10).toStringAsFixed(0)}%)',
+          ),
         ],
       ),
     );
@@ -517,10 +556,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.primaryWithOpacity20,
-            width: 0.5,
-          ),
+          bottom: BorderSide(color: AppColors.primaryWithOpacity20, width: 0.5),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -554,25 +590,33 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.only(top: 1),
       child: Column(
         children: [
-          Container(
-            height: 8,
-            color: AppColors.primaryWithOpacity05,
+          Container(height: 8, color: AppColors.primaryWithOpacity05),
+          _buildMenuRow(
+            'Баланс',
+            null,
+            onTap: () async {
+              final result = await _navigateToOfflinePage(
+                const BalanceScreen(),
+              );
+              // Обновляем баланс после возврата со страницы баланса
+              if (result == true) {
+                await _loadBalance();
+              }
+            },
           ),
-          _buildMenuRow('Баланс', null, onTap: () async {
-            final result = await _navigateToOfflinePage(const BalanceScreen());
-            // Обновляем баланс после возврата со страницы баланса
-            if (result == true) {
-              await _loadBalance();
-            }
-          }),
-          _buildMenuRow('Оплата', _selectedPaymentMethod, onTap: _showPaymentMethodBottomSheet),
-          _buildMenuRow('Личные данные о вас', null, onTap: () {
-            _navigateToOfflinePage(const PersonalDataScreen());
-          }),
-          Container(
-            height: 8,
-            color: AppColors.primaryWithOpacity05,
+          _buildMenuRow(
+            'Оплата',
+            _selectedPaymentMethod,
+            onTap: _showPaymentMethodBottomSheet,
           ),
+          _buildMenuRow(
+            'Личные данные о вас',
+            null,
+            onTap: () {
+              _navigateToOfflinePage(const PersonalDataScreen());
+            },
+          ),
+          Container(height: 8, color: AppColors.primaryWithOpacity05),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Align(
@@ -587,37 +631,67 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          _buildMenuRow('Тарифы', '${_currentTariff == 'Эконом' ? 1 : 0} из 6', onTap: () {
-            _navigateToOfflinePage(const TariffsScreen());
-          }),
-          _buildMenuRow('Опции для тарифов', null, onTap: () {
-            _navigateToOfflinePage(const OptionsScreen());
-          }),
-          _buildMenuRow('Поддержка', null, onTap: () {
-            _navigateToOfflinePage(const SupportMainScreen());
-          }),
-          _buildMenuRow('Диагностика', _diagnosticsIssuesCount > 0 ? '$_diagnosticsIssuesCount' : null, onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => DiagnosticsScreen(
-                  currentTariff: _currentTariff,
-                  currentBalance: _balanceData?.currentBalance,
-                ),
-              ),
-            ).then((_) {
-              // Обновляем данные после возврата с экрана диагностики
-              _loadDiagnosticsData();
-            });
-          }),
-          _buildMenuRow('Фотоконтроль', null, onTap: () {
-            _navigateToOfflinePage(const PhotocontrolScreen());
-          }),
-          _buildMenuRow('От борта', null, onTap: () {
-            _navigateToOfflinePage(const StreetHailScreen());
-          }),
-          _buildMenuRow('Полезные советы', null, onTap: () {
-            _navigateToOfflinePage(const UsefulTipsScreen());
-          }),
+          _buildMenuRow(
+            'Тарифы',
+            '${_currentTariff == 'Эконом' ? 1 : 0} из 6',
+            onTap: () {
+              _navigateToOfflinePage(const TariffsScreen());
+            },
+          ),
+          _buildMenuRow(
+            'Опции для тарифов',
+            null,
+            onTap: () {
+              _navigateToOfflinePage(const OptionsScreen());
+            },
+          ),
+          _buildMenuRow(
+            'Поддержка',
+            null,
+            onTap: () {
+              _navigateToOfflinePage(const SupportMainScreen());
+            },
+          ),
+          _buildMenuRow(
+            'Диагностика',
+            _diagnosticsIssuesCount > 0 ? '$_diagnosticsIssuesCount' : null,
+            onTap: () {
+              Navigator.of(context)
+                  .push(
+                    MaterialPageRoute(
+                      builder: (context) => DiagnosticsScreen(
+                        currentTariff: _currentTariff,
+                        currentBalance: _balanceData?.currentBalance,
+                      ),
+                    ),
+                  )
+                  .then((_) {
+                    // Обновляем данные после возврата с экрана диагностики
+                    _loadDiagnosticsData();
+                  });
+            },
+          ),
+          _buildMenuRow(
+            'Фотоконтроль',
+            null,
+            onTap: () {
+              _navigateToOfflinePage(const PhotocontrolScreen());
+            },
+          ),
+          _buildMenuRow(
+            'От борта',
+            null,
+            onTap: () {
+              _navigateToOfflinePage(const StreetHailScreen());
+            },
+          ),
+          _buildMenuRow(
+            'Полезные советы',
+            null,
+            onTap: () {
+              _navigateToOfflinePage(const UsefulTipsScreen());
+            },
+          ),
           _buildMenuRow('Выход из Eco Такси', null, onTap: _handleLogout),
         ],
       ),
@@ -628,10 +702,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.primaryWithOpacity20,
-            width: 0.5,
-          ),
+          bottom: BorderSide(color: AppColors.primaryWithOpacity20, width: 0.5),
         ),
       ),
       child: InkWell(
@@ -639,53 +710,55 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
-          children: [
-            // Серая иконка слева
-            Container(
-              width: 30,
-              height: 30,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryWithOpacity20,
-                shape: BoxShape.circle,
+            children: [
+              // Серая иконка слева
+              Container(
+                width: 30,
+                height: 30,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryWithOpacity20,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.circle,
+                  color: const Color(0xFF264b47),
+                  size: 16,
+                ),
               ),
-              child: const Icon(
-                Icons.circle,
-                color: const Color(0xFF264b47),
-                size: 16,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Row(
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const Spacer(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Row(
+                  children: [
                     Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: title == 'Диагностика' ? Colors.red : const Color(0xFF666666),
-                        fontWeight: FontWeight.w400,
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+                    if (subtitle != null) ...[
+                      const Spacer(),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: title == 'Диагностика'
+                              ? Colors.red
+                              : const Color(0xFF666666),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              color: Color(0xFF999999),
-              size: 20,
-            ),
-          ],
+              const Icon(
+                Icons.chevron_right,
+                color: Color(0xFF999999),
+                size: 20,
+              ),
+            ],
           ),
         ),
       ),
@@ -717,31 +790,27 @@ class _HomeScreenState extends State<HomeScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
       try {
         // Выполняем выход
         await AuthService.logout();
-        
+
         // Закрываем диалог загрузки
         if (mounted) Navigator.of(context).pop();
-        
+
         // Перенаправляем на экран авторизации
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (context) => const PhoneAuthScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const PhoneAuthScreen()),
             (route) => false,
           );
         }
       } catch (e) {
         // Закрываем диалог загрузки
         if (mounted) Navigator.of(context).pop();
-        
+
         // Показываем ошибку
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -755,7 +824,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   void _showPaymentMethodBottomSheet() {
     SafeBottomSheet.show(
       context: context,
@@ -767,15 +835,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   Widget _buildPaymentOption(String title, String value, bool isSelected) {
     return Container(
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.primaryWithOpacity20,
-            width: 0.5,
-          ),
+          bottom: BorderSide(color: AppColors.primaryWithOpacity20, width: 0.5),
         ),
       ),
       child: ListTile(
@@ -788,11 +852,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         trailing: isSelected
-            ? const Icon(
-                Icons.check,
-                color: Colors.black,
-                size: 24,
-              )
+            ? const Icon(Icons.check, color: Colors.black, size: 24)
             : null,
         onTap: () {
           if (value == 'cash') {
@@ -814,7 +874,9 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('В разработке'),
-        content: const Text('Эта функция пока недоступна и находится в разработке.'),
+        content: const Text(
+          'Эта функция пока недоступна и находится в разработке.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -836,29 +898,36 @@ class _HomeScreenState extends State<HomeScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _canGoOnline ? () async {
-                await DriverStatusService().goOnline();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const OnlineNavigationScreen(),
-                  ),
-                );
-              } : () {
-                // Навигация на страницу диагностики
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => DiagnosticsScreen(
-                      currentTariff: _currentTariff,
-                      currentBalance: _balanceData?.currentBalance,
-                    ),
-                  ),
-                ).then((_) {
-                  // Обновляем данные после возврата с экрана диагностики
-                  _loadDiagnosticsData();
-                });
-              },
+              onPressed: _canGoOnline
+                  ? () async {
+                      await DriverStatusService().goOnline();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const OnlineNavigationScreen(),
+                        ),
+                      );
+                    }
+                  : () {
+                      // Навигация на страницу диагностики
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              builder: (context) => DiagnosticsScreen(
+                                currentTariff: _currentTariff,
+                                currentBalance: _balanceData?.currentBalance,
+                              ),
+                            ),
+                          )
+                          .then((_) {
+                            // Обновляем данные после возврата с экрана диагностики
+                            _loadDiagnosticsData();
+                          });
+                    },
               style: ElevatedButton.styleFrom(
-                backgroundColor: _canGoOnline ? const Color(0xFF264b47) : const Color(0xFF666666),
+                backgroundColor: _canGoOnline
+                    ? const Color(0xFF264b47)
+                    : const Color(0xFF666666),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -875,20 +944,24 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          Button(label: 'Тестовый заказ', onTap: () => _goToPageTestOrder(context)),
           if (!_canGoOnline) ...[
             const SizedBox(height: 8),
             GestureDetector(
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => DiagnosticsScreen(
-                      currentTariff: _currentTariff,
-                      currentBalance: _balanceData?.currentBalance,
-                    ),
-                  ),
-                ).then((_) {
-                  _loadDiagnosticsData();
-                });
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => DiagnosticsScreen(
+                          currentTariff: _currentTariff,
+                          currentBalance: _balanceData?.currentBalance,
+                        ),
+                      ),
+                    )
+                    .then((_) {
+                      _loadDiagnosticsData();
+                    });
               },
               child: Text(
                 'Выполните все требования. Для подробностей перейдите на страницу Диагностика',
@@ -906,5 +979,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-}
+  void _goToPageTestOrder(BuildContext context) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return Container();
+    }));
+  }
 
+}

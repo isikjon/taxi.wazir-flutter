@@ -20,6 +20,8 @@ class OnlineNavigationScreen extends StatefulWidget {
 
 class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with WidgetsBindingObserver {
   late sdk.MapWidgetController _mapController;
+  late sdk.TrafficRouter _routeManager;
+
   sdk.Map? _map;
   sdk.NavigationManager? _navigationManager;
   sdk.MyLocationMapObjectSource? _locationSource;
@@ -63,6 +65,7 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     _goOnline();
     _initializeMap();
     _initializeOrderHandling();
+    _routeManager = sdk.TrafficRouter(sdkContext);
   }
 
   @override
@@ -373,6 +376,9 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
       
       if (_navigationManager != null && _map != null) {
         _maneuverController = sdk.ManeuverController(navigationManager: _navigationManager!);
+        _maneuverController = sdk.ManeuverController(
+          navigationManager: _navigationManager!,
+        );
         _speedLimitController = sdk.SpeedLimitController(navigationManager: _navigationManager!);
         _zoomController = sdk.ZoomController(map: _map!);
         _compassController = sdk.CompassController(map: _map!);
@@ -581,6 +587,7 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     try {
       await _orderService.updateOrderStatusToServer('arrived_at_a');
       _addLog('📍 Прибыли к клиенту');
+
     } catch (e) {
       _addLog('❌ Ошибка обновления статуса: $e');
     }
@@ -603,6 +610,7 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     
     try {
       await _orderService.updateOrderStatusToServer('completed');
+      _navigationManager!.stop();
       _addLog('✅ Заказ завершен: ${_currentOrder!['order_number']}');
     } catch (e) {
       _addLog('❌ Ошибка завершения заказа: $e');
@@ -618,6 +626,26 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     if (pickupLat != null && pickupLon != null) {
       await _routeService.buildRouteToClient(pickupLat, pickupLon);
       _startLocationMonitoring();
+
+      final options = sdk.RouteBuildOptions(
+        finishPoint: sdk.RouteSearchPoint(
+          coordinates: sdk.GeoPoint(
+            latitude: sdk.Latitude(pickupLat),
+            longitude: sdk.Longitude(pickupLon),
+          ),
+        ),
+        routeSearchOptions: sdk.RouteSearchOptions.car(
+          sdk.CarRouteSearchOptions(),
+        ),
+      );
+
+       _navigationManager!.start(options);
+      // _startSimulationToDestination(pickupLat, pickupLon);
+
+
+      setState(() {
+        _isNavigationActive = true;
+      });
     }
   }
 
@@ -629,6 +657,28 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
     
     if (destinationLat != null && destinationLon != null) {
       await _routeService.buildRouteToDestination(destinationLat, destinationLon);
+
+      final options = sdk.RouteBuildOptions(
+        finishPoint: sdk.RouteSearchPoint(
+          coordinates: sdk.GeoPoint(
+            latitude: sdk.Latitude(destinationLat),
+            longitude: sdk.Longitude(destinationLon),
+          ),
+        ),
+        routeSearchOptions: sdk.RouteSearchOptions.car(
+          sdk.CarRouteSearchOptions(),
+        ),
+      );
+
+       _navigationManager!.start(options);
+
+      // _startSimulationToDestination(destinationLat, destinationLon);
+
+      setState(() {
+        _isNavigationActive = true;
+      });
+
+
     }
   }
 
@@ -647,6 +697,91 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
         destinationLat: destinationLat,
         destinationLon: destinationLon,
       );
+    }
+  }
+
+  Future<void> _startSimulationToDestination(double lat, double lon) async {
+    if (_navigationManager == null) return;
+
+    final pickupLat = _currentOrder!['pickup_latitude'];
+    final pickupLon = _currentOrder!['pickup_longitude'];
+    final destinationLat = _currentOrder!['destination_latitude'];
+    final destinationLon = _currentOrder!['destination_longitude'];
+
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final startPoint = sdk.RouteSearchPoint(
+        coordinates: sdk.GeoPoint(
+          latitude: sdk.Latitude(destinationLat),
+          longitude: sdk.Longitude(destinationLon),
+        ),
+      );
+
+      // final startPoint = sdk.RouteSearchPoint(
+      //   coordinates: sdk.GeoPoint(
+      //     latitude: sdk.Latitude(pickupLat),
+      //     longitude: sdk.Longitude(pickupLon),
+      //   ),
+      // );
+
+      final finishPoint = sdk.RouteSearchPoint(
+        coordinates: sdk.GeoPoint(
+          latitude: sdk.Latitude(lat),
+          longitude: sdk.Longitude(lon),
+        ),
+      );
+
+      final routeSearchOptions =
+      sdk.RouteSearchOptions.car(sdk.CarRouteSearchOptions());
+
+      final routeMapSource = sdk.RouteMapObjectSource(
+        sdkContext,
+        sdk.RouteVisualizationType.normal,
+      );
+      _map!.addSource(routeMapSource);
+
+      // Строим маршрут через TrafficRouter
+      final routes = await _routeManager
+          .findRoute(startPoint, finishPoint, routeSearchOptions)
+          .value;
+
+      if (routes.isEmpty) {
+        debugPrint("❌ Маршрут не найден");
+        return;
+      }
+
+      // Берём первый маршрут
+      final mainRoute = routes.first;
+
+      // Добавляем на карту (основной + альтернативные)
+      for (var i = 0; i < routes.length; i++) {
+        final route = routes[i];
+        routeMapSource.addObject(
+          sdk.RouteMapObject(route, i == 0, sdk.RouteIndex(i)),
+        );
+      }
+
+      // Настройка скорости симуляции (10 м/с ≈ 36 км/ч)
+      _navigationManager?.simulationSettings.speedMode =
+          sdk.SimulationSpeedMode.overSpeed(
+            sdk.SimulationAutoWithOverSpeed(10),
+          );
+
+      // 🚗 Запускаем симуляцию по построенному маршруту
+      final routeBuildOptions = sdk.RouteBuildOptions(
+        finishPoint: finishPoint,
+        routeSearchOptions: routeSearchOptions,
+      );
+
+       _navigationManager!.startSimulation(routeBuildOptions, mainRoute);
+
+      setState(() => _isNavigationActive = true);
+      debugPrint("✅ Симуляция маршрута запущена");
+    } catch (e) {
+      debugPrint("❌ Ошибка при запуске симуляции: $e");
     }
   }
 
@@ -683,8 +818,9 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
             mapOptions: sdk.MapOptions(
               position: sdk.CameraPosition(
                 point: sdk.GeoPoint(
-                      latitude: sdk.Latitude(42.8746),
-                  longitude: sdk.Longitude(74.5698),
+                      latitude: sdk.Latitude(40.512911),
+                  longitude: sdk.Longitude(72.806679
+                  ),
                 ),
                 zoom: sdk.Zoom(12.0),
               ),
@@ -692,7 +828,7 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
             child: Stack(
               children: [
                 if (_areWidgetsReady) ...[
-                  if (_maneuverController != null)
+                  if (_isNavigationActive && _maneuverController != null)
                     Positioned(
                       top: MediaQuery.of(context).padding.top + 80,
                       left: 16,
@@ -703,30 +839,30 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                   
                   if (_speedLimitController != null)
                     Positioned(
-                      top: MediaQuery.of(context).padding.top + 140,
+                      top: MediaQuery.of(context).padding.top + 100,
                       right: 16,
                       child: sdk.SpeedLimitWidget(
                         controller: _speedLimitController!,
                       ),
                     ),
                   
-                  if (_zoomController != null)
-                    Positioned(
-                      bottom: 220,
-                      right: 16,
-                      child: sdk.NavigationZoomWidget(
-                        controller: _zoomController!,
-                      ),
-                    ),
-                  
-                  if (_compassController != null)
-                    Positioned(
-                      bottom: 340,
-                      right: 16,
-                      child: sdk.NavigationCompassWidget(
-                        controller: _compassController!,
-                      ),
-                    ),
+                  // if (_zoomController != null)
+                  //   Positioned(
+                  //     bottom: 220,
+                  //     right: 16,
+                  //     child: sdk.NavigationZoomWidget(
+                  //       controller: _zoomController!,
+                  //     ),
+                  //   ),
+                  //
+                  // if (_compassController != null)
+                  //   Positioned(
+                  //     bottom: 340,
+                  //     right: 16,
+                  //     child: sdk.NavigationCompassWidget(
+                  //       controller: _compassController!,
+                  //     ),
+                  //   ),
                   
                   if (_myLocationController != null)
                     Positioned(
@@ -739,7 +875,7 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                   
                   if (_trafficLineController != null)
                     Positioned(
-                      bottom: 140,
+                      bottom: _currentOrder == null ? 140 : 300,
                       left: 16,
                       child: sdk.TrafficLineWidget(
                         controller: _trafficLineController!,
