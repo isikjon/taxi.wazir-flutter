@@ -1,7 +1,9 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:dgis_mobile_sdk_full/dgis.dart' as sdk;
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:geolocator/geolocator.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_messaging_service.dart';
 import 'services/websocket_service.dart';
@@ -15,6 +17,12 @@ late sdk.Context sdkContext;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.white, // фон статус-бара
+        statusBarIconBrightness: Brightness.dark, // иконки тёмные
+      ),
+  );
   
   try {
     // Инициализируем Firebase
@@ -82,12 +90,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
   void initState() {
     super.initState();
     _checkAuthStatus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      requestPermission();
+      requestLocationPermission();
+    });
   }
 
   Future<void> _checkAuthStatus() async {
     try {
       final isLoggedIn = await AuthService.isLoggedIn();
-      
+
       setState(() {
         _isLoggedIn = isLoggedIn;
         _isLoading = false;
@@ -128,6 +140,51 @@ class _AuthWrapperState extends State<AuthWrapper> {
     } else {
       return const PhoneAuthScreen();
     }
+  }
+
+  void requestPermission() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+  }
+
+  Future<void> requestLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Проверяем, включены ли службы геолокации
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      print('Геолокация выключена. Попросите пользователя включить её.');
+      return;
+    }
+
+    // Проверяем текущее разрешение
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        print('Разрешение отклонено');
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      print('Разрешение отклонено навсегда. Пользователю нужно включить в настройках');
+      return;
+    }
+
+    print('Разрешение на геолокацию получено');
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    print('Текущая позиция: ${position.latitude}, ${position.longitude}');
   }
 }
 

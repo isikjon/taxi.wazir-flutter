@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dgis_mobile_sdk_full/dgis.dart' as sdk;
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../main.dart' show sdkContext;
 import '../../styles/app_colors.dart';
@@ -846,14 +847,14 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  // if (_zoomController != null)
-                  //   Positioned(
-                  //     bottom: 220,
-                  //     right: 16,
-                  //     child: sdk.NavigationZoomWidget(
-                  //       controller: _zoomController!,
-                  //     ),
-                  //   ),
+                  if (_zoomController != null)
+                    Positioned(
+                      bottom: 220,
+                      right: 16,
+                      child: sdk.NavigationZoomWidget(
+                        controller: _zoomController!,
+                      ),
+                    ),
                   //
                   // if (_compassController != null)
                   //   Positioned(
@@ -882,22 +883,22 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
                       ),
                     ),
                   
-                  if (_dashboardController != null)
-                    Positioned(
-                      bottom: 20,
-                      left: 20,
-                      right: 20,
-                      child: Container(
-                        constraints: const BoxConstraints(
-                          minHeight: 60,
-                          maxHeight: 120,
-                        ),
-                        child: sdk.DashboardWidget(
-                          controller: _dashboardController!,
-                          onHeaderChangeSize: (size) {},
-                        ),
-                      ),
-                    ),
+                  // if (_dashboardController != null)
+                  //   Positioned(
+                  //     bottom: 20,
+                  //     left: 20,
+                  //     right: 20,
+                  //     child: Container(
+                  //       constraints: const BoxConstraints(
+                  //         minHeight: 60,
+                  //         maxHeight: 120,
+                  //       ),
+                  //       child: sdk.DashboardWidget(
+                  //         controller: _dashboardController!,
+                  //         onHeaderChangeSize: (size) {},
+                  //       ),
+                  //     ),
+                  //   ),
                   
                   if (_trafficController != null)
                     Positioned(

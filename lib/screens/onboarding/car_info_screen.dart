@@ -249,7 +249,7 @@ class _CarInfoScreenState extends State<CarInfoScreen>
             _buildFormField(
               label: 'Введите гос.номер',
               value: _licensePlateController.text,
-              placeholder: '01 KG H 1234',
+              placeholder: '01 KG 777 AAA',
               onTap: null,
               isEditable: true,
               inputFormatters: [LicensePlateFormatter()],
@@ -544,6 +544,24 @@ class _CarInfoScreenState extends State<CarInfoScreen>
   }
 
   void _continueToNext(BuildContext context) async {
+
+    if (selectedBrand == null ||
+        selectedModel == null ||
+        selectedColor == null ||
+        selectedYear == null ||
+        _licensePlateController.text.isEmpty ||
+        _vinController.text.isEmpty ||
+        _bodyNumberController.text.isEmpty ||
+        _stsController.text.isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Пожалуйста, заполните все обязательные поля корректно.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     // Сохраняем данные автомобиля
     await UserDataService.instance.saveCarData(
       brand: selectedBrand ?? '',
@@ -580,68 +598,70 @@ class _CarInfoScreenState extends State<CarInfoScreen>
   }
 }
 
+
 class LicensePlateFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text.toUpperCase();
-    
-    if (text.isEmpty) {
-      return newValue.copyWith(text: '');
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    String text = newValue.text.toUpperCase();
+    String newText = '';
+
+    // 1. Удаляем все, кроме букв и цифр
+    String cleanText = text.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    int cleanTextLength = cleanText.length;
+
+    for (int i = 0; i < cleanTextLength; i++) {
+      // 2. Первые 2 символа должны быть цифрами
+      if (i < 2) {
+        if (RegExp(r'[0-9]').hasMatch(cleanText[i])) {
+          newText += cleanText[i];
+        }
+        // 3. Следующие 2 символа - буквы
+      } else if (i < 4) {
+        if (RegExp(r'[A-Z]').hasMatch(cleanText[i])) {
+          newText += cleanText[i];
+        }
+        // 4. Следующие 3 символа - цифры
+      } else if (i < 7) {
+        if (RegExp(r'[0-9]').hasMatch(cleanText[i])) {
+          newText += cleanText[i];
+        }
+        // 5. Последние 3 символа - буквы
+      } else if (i < 10) {
+        if (RegExp(r'[A-Z]').hasMatch(cleanText[i])) {
+          newText += cleanText[i];
+        }
+      }
     }
-    
-    // Удаляем все символы кроме букв и цифр
-    final cleanText = text.replaceAll(RegExp(r'[^A-Z0-9]'), '');
-    
-    if (cleanText.isEmpty) {
-      return newValue.copyWith(text: '');
+
+    // 6. Расставляем пробелы
+    String formattedText = '';
+    int newTextLength = newText.length;
+
+    if (newTextLength > 0) {
+      formattedText += newText.substring(0, newTextLength > 2 ? 2 : newTextLength);
+      if (newTextLength > 2) {
+        formattedText += ' ' + newText.substring(2, newTextLength > 4 ? 4 : newTextLength);
+        if (newTextLength > 4) {
+          formattedText += ' ' + newText.substring(4, newTextLength > 7 ? 7 : newTextLength);
+          if (newTextLength > 7) {
+            formattedText += ' ' + newText.substring(7, newTextLength > 10 ? 10 : newTextLength);
+          }
+        }
+      }
     }
-    
-    String formatted = '';
-    
-    // Первые 2 цифры (код региона)
-    if (cleanText.length >= 1) {
-      formatted = cleanText.substring(0, 1);
+
+    // 7. Устанавливаем ограничение по общей длине (10 символов + 3 пробела)
+    if (formattedText.length > 13) {
+      formattedText = formattedText.substring(0, 13);
     }
-    if (cleanText.length >= 2) {
-      formatted += cleanText.substring(1, 2);
-    }
-    
-    // Пробел после кода региона
-    if (cleanText.length >= 3) {
-      formatted += ' ${cleanText.substring(2, 3)}';
-    }
-    if (cleanText.length >= 4) {
-      formatted += cleanText.substring(3, 4);
-    }
-    
-    // Пробел после первых двух букв
-    if (cleanText.length >= 5) {
-      formatted += ' ${cleanText.substring(4, 5)}';
-    }
-    
-    // Пробел после третьей буквы
-    if (cleanText.length >= 6) {
-      formatted += ' ${cleanText.substring(5, 6)}';
-    }
-    if (cleanText.length >= 7) {
-      formatted += cleanText.substring(6, 7);
-    }
-    if (cleanText.length >= 8) {
-      formatted += cleanText.substring(7, 8);
-    }
-    if (cleanText.length >= 9) {
-      formatted += cleanText.substring(8, 9);
-    }
-    if (cleanText.length >= 10) {
-      formatted += cleanText.substring(9, 10);
-    }
-    
-    return newValue.copyWith(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
+
+    // 8. Корректируем позицию курсора
+    int selectionIndex = formattedText.length;
+
+    return TextEditingValue(
+      text: formattedText,
+      selection: TextSelection.collapsed(offset: selectionIndex),
     );
   }
 }

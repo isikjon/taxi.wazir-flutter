@@ -218,7 +218,7 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen>
             _buildFormField(
               label: 'Введите Ф.И.О.',
               controller: _fullNameController,
-              placeholder: 'Маасалиев Талантбек',
+              placeholder: 'Ф.И.О',
             ),
             const SizedBox(height: AppSpacing.lg),
             _buildFormField(
@@ -463,6 +463,22 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen>
   }
 
   void _confirmData(BuildContext context) async {
+
+    if (_countryController.text.isEmpty ||
+        _fullNameController.text.isEmpty ||
+        _licenseNumberController.text.isEmpty ||
+        _issueDateController.text.isEmpty ||
+        _callSignController.text.isEmpty ||
+        !_isIssueDateValid) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Пожалуйста, заполните все обязательные поля корректно.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     // Сохраняем данные водительских прав
     await UserDataService.instance.saveDriverLicenseData(
       country: _countryController.text,

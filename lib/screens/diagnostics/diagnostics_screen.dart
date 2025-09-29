@@ -1,3 +1,5 @@
+import 'package:eco_taxi/screens/photocontrol/sts_main_screen.dart';
+import 'package:eco_taxi/screens/photocontrol/vu_main_screen.dart';
 import 'package:flutter/material.dart';
 import '../../styles/app_colors.dart';
 import '../../styles/app_text_styles.dart';
@@ -269,7 +271,11 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         title: 'Пройдите фотоконтроль СТС',
         subtitle: _rejectionReason,
         onTap: () {
-          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const StsMainScreen(),
+            ),
+          );
         },
       ));
     }
@@ -279,8 +285,11 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         title: 'Пройдите фотоконтроль ВУ',
         subtitle: _rejectionReason,
         onTap: () {
-          Navigator.of(context).pop();
-        },
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const VuMainScreen(),
+            ),
+          );          },
       ));
     }
 

@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import '../../styles/app_colors.dart';
 import '../../styles/app_spacing.dart';
 import '../../services/user_data_service.dart';
+import '../auth/phone_auth_screen.dart';
 import 'final_sms_verification_screen.dart';
 
 class DataConfirmationScreen extends StatefulWidget {
   final Map<String, dynamic> selectedPark;
 
-  const DataConfirmationScreen({
-    super.key,
-    required this.selectedPark,
-  });
+  const DataConfirmationScreen({super.key, required this.selectedPark});
 
   @override
   State<DataConfirmationScreen> createState() => _DataConfirmationScreenState();
@@ -20,7 +18,7 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
     with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _slideController;
-  
+
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
@@ -29,32 +27,25 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
 
     _startAnimations();
     _loadUserData();
@@ -95,9 +86,7 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
             _buildAnimatedProgressSteps(),
             const SizedBox(height: AppSpacing.lg),
             Expanded(
-              child: SingleChildScrollView(
-                child: _buildAnimatedContent(),
-              ),
+              child: SingleChildScrollView(child: _buildAnimatedContent()),
             ),
             _buildAnimatedConfirmButton(context),
             const SizedBox(height: AppSpacing.lg),
@@ -151,7 +140,11 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
     );
   }
 
-  Widget _buildAnimatedStep(int number, String title, {required bool isCompleted}) {
+  Widget _buildAnimatedStep(
+    int number,
+    String title, {
+    required bool isCompleted,
+  }) {
     return Column(
       children: [
         Container(
@@ -162,11 +155,7 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
             borderRadius: BorderRadius.circular(AppSpacing.borderRadiusSmall),
           ),
           child: const Center(
-            child: Icon(
-              Icons.check,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: Icon(Icons.check, color: Colors.white, size: 20),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -234,7 +223,10 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
         _buildDataField('Страна выдачи в/с', userData['country']),
         _buildDataField('Серия и номер в/с', userData['licenseNumber']),
         _buildDataField('Дата выдачи в/с', userData['issueDate']),
-        _buildDataField('Дата окончания срока действия в/с', userData['expiryDate']),
+        _buildDataField(
+          'Дата окончания срока действия в/с',
+          userData['expiryDate'],
+        ),
         _buildDataField('Код приглашения', userData['invitationCode']),
       ],
     );
@@ -362,10 +354,7 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
           ],
         ),
         const SizedBox(height: AppSpacing.lg),
-        Container(
-          height: 1,
-          color: const Color(0xFFE0E0E0),
-        ),
+        Container(height: 1, color: const Color(0xFFE0E0E0)),
         const SizedBox(height: AppSpacing.lg),
       ],
     );
@@ -446,21 +435,23 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
 
   void _confirmData(BuildContext context) {
     // Получаем полные данные пользователя
-    final Map<String, dynamic> allData = UserDataService.instance.getCompleteUserData();
+    final Map<String, dynamic> allData = UserDataService.instance
+        .getCompleteUserData();
 
     print('All data collected: $allData');
 
-    Navigator.of(context).push(
+    Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => FinalSmsVerificationScreen(allData: allData),
+        pageBuilder: (context, animation, secondaryAnimation) => PhoneAuthScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
           const curve = Curves.easeInOutCubic;
 
-          var tween = Tween(begin: begin, end: end).chain(
-            CurveTween(curve: curve),
-          );
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
 
           return SlideTransition(
             position: animation.drive(tween),
@@ -469,6 +460,7 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
         },
         transitionDuration: const Duration(milliseconds: 500),
       ),
+      (route) => false,
     );
   }
 }
