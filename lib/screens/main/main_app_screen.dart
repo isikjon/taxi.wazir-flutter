@@ -1,4 +1,3 @@
-import 'package:eco_taxi/screens/navigation/test_navigation_screen.dart';
 import 'package:eco_taxi/widgets/button.dart';
 import 'package:flutter/material.dart';
 import '../../styles/app_colors.dart';
@@ -944,8 +943,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Button(label: 'Тестовый заказ', onTap: () => _goToPageTestOrder(context)),
           if (!_canGoOnline) ...[
             const SizedBox(height: 8),
             GestureDetector(
@@ -977,12 +974,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
-
-  void _goToPageTestOrder(BuildContext context) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return Container();
-    }));
   }
 
 }
