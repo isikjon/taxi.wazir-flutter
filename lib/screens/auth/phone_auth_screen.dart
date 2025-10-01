@@ -15,8 +15,7 @@ class PhoneNumberFormatter extends TextInputFormatter {
   ) {
     final text = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
     
-    // Ограничиваем только 10 цифрами
-    if (text.length > 10) {
+    if (text.length > 9) {
       return oldValue;
     }
     
@@ -29,31 +28,28 @@ class PhoneNumberFormatter extends TextInputFormatter {
       formatted = text.substring(0, 1);
     }
     if (text.length >= 2) {
-      formatted += '${text.substring(1, 2)}';
+      formatted += text.substring(1, 2);
     }
     if (text.length >= 3) {
-      formatted += '${text.substring(2, 3)}';
+      formatted += text.substring(2, 3);
     }
     if (text.length >= 4) {
       formatted += ' ${text.substring(3, 4)}';
     }
     if (text.length >= 5) {
-      formatted += '${text.substring(4, 5)}';
+      formatted += text.substring(4, 5);
     }
     if (text.length >= 6) {
-      formatted += '${text.substring(5, 6)}';
+      formatted += text.substring(5, 6);
     }
     if (text.length >= 7) {
       formatted += ' ${text.substring(6, 7)}';
     }
     if (text.length >= 8) {
-      formatted += '${text.substring(7, 8)}';
+      formatted += text.substring(7, 8);
     }
     if (text.length >= 9) {
-      formatted += ' ${text.substring(8, 9)}';
-    }
-    if (text.length >= 10) {
-      formatted += '${text.substring(9, 10)}';
+      formatted += text.substring(8, 9);
     }
     
     return newValue.copyWith(
@@ -73,11 +69,28 @@ class PhoneAuthScreen extends StatefulWidget {
 class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   final _phoneController = TextEditingController();
   bool _isLoading = false;
+  bool _isSwitching = false;
+  bool _isLoginMode = false;
 
   @override
   void dispose() {
     _phoneController.dispose();
     super.dispose();
+  }
+
+  void _toggleMode() async {
+    setState(() {
+      _isSwitching = true;
+    });
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() {
+        _isLoginMode = !_isLoginMode;
+        _isSwitching = false;
+      });
+    }
   }
 
   void _continue() {
@@ -155,7 +168,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
 
   Widget _buildTitle() {
     return Text(
-      'Авторизация по номеру телефона',
+      _isLoginMode ? 'Логин по номеру телефона' : 'Регистрация по номеру телефона',
       style: AppTextStyles.h2.copyWith(
         fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,
@@ -228,7 +241,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
               //   color: AppColors.textPrimary,
               // ),
               decoration: const InputDecoration(
-                hintText: '700 123 45 67',
+                hintText: '123 456 789',
                 hintStyle: TextStyle(
                   color: AppColors.textHint,
                 ),
@@ -285,6 +298,46 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   Widget _buildLegalText() {
     return Column(
       children: [
+        if (_isSwitching)
+          const Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.md),
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: GestureDetector(
+              onTap: _toggleMode,
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: _isLoginMode ? 'У вас нету аккаунта? ' : 'У вас уже есть аккаунт? ',
+                    ),
+                    TextSpan(
+                      text: _isLoginMode ? 'РЕГИСТРАЦИЯ' : 'ЛОГИН',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         Text(
           'Нажимая кнопку вы соглашаетесь с условиями',
           style: AppTextStyles.bodySmall.copyWith(

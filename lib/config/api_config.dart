@@ -1,7 +1,7 @@
 class ApiConfig {
   // static const String productionBaseUrl = 'http://192.168.1.3:8000';
   static const String productionBaseUrl = 'https://new.superadmin.taxi.wazir.kg';
-  static const String developmentBaseUrl = 'http://192.168.1.4:8400';
+  static const String developmentBaseUrl = 'http://192.168.1.4:8081';
   static const String testBaseUrl = 'https://test.superadmin.taxi.wazir.kg';
 
 

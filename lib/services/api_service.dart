@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../utils/phone_utils.dart';
+import 'devino_sms_service.dart';
 
 class ApiService {
   static String get baseUrl => ApiConfig.baseUrl;
@@ -95,11 +96,36 @@ class ApiService {
           };
         } else if (response.statusCode != 404) {
           // Если не 404, значит эндпоинт найден, но есть другая ошибка
+          String errorMessage = 'Ошибка авторизации';
+          
+          try {
+            final errorData = json.decode(response.body);
+            if (errorData['detail'] != null) {
+              errorMessage = errorData['detail'];
+            } else if (errorData['error'] != null) {
+              errorMessage = errorData['error'];
+            } else if (errorData['message'] != null) {
+              errorMessage = errorData['message'];
+            }
+          } catch (e) {
+            // Если не удалось распарсить JSON, используем стандартное сообщение
+            if (response.statusCode == 400) {
+              errorMessage = 'Неверный или истекший SMS код';
+            } else if (response.statusCode == 401) {
+              errorMessage = 'Ошибка авторизации';
+            } else if (response.statusCode == 403) {
+              errorMessage = 'Доступ запрещен';
+            } else if (response.statusCode == 500) {
+              errorMessage = 'Внутренняя ошибка сервера';
+            }
+          }
+          
           return {
             'success': false,
-            'error': 'Ошибка авторизации [$endpoint]: ${response.statusCode}',
+            'error': errorMessage,
             'details': response.body,
             'endpoint': endpoint,
+            'statusCode': response.statusCode,
           };
         }
       } catch (e) {
@@ -114,60 +140,40 @@ class ApiService {
     };
   }
 
-  // Отправка SMS кода (пробуем разные эндпоинты)
+  // Отправка SMS кода через Devino
   Future<Map<String, dynamic>> sendSmsCode(String phoneNumber) async {
-    // Нормализуем номер телефона
-    final String normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
-    print('📱 Original phone: $phoneNumber');
-    print('📱 Normalized phone: $normalizedPhone');
-    
-    // Используем правильный эндпоинт для SMS
-    final List<String> smsEndpoints = [
-      '/api/sms/send',
-    ];
-
-    for (String endpoint in smsEndpoints) {
-      try {
-        print('📱 Trying SMS endpoint: ${ApiConfig.baseUrl}$endpoint');
-        print('📱 Sending SMS to: $normalizedPhone');
-        
-        final response = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}$endpoint'),
-          headers: ApiConfig.defaultHeaders,
-          body: json.encode({
-            'phoneNumber': normalizedPhone,
-          }),
-        );
-
-        print('📱 SMS [$endpoint] status: ${response.statusCode}');
-        print('📱 SMS [$endpoint] body: ${response.body}');
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          print('✅ SMS отправлен через: $endpoint');
-          return {
-            'success': true,
-            'data': response.body.isNotEmpty ? json.decode(response.body) : {'status': 'sent'},
-            'endpoint': endpoint,
-          };
-        } else if (response.statusCode != 404) {
-          // Если не 404, значит эндпоинт найден, но есть другая ошибка
-          return {
-            'success': false,
-            'error': 'Ошибка отправки SMS [$endpoint]: ${response.statusCode}',
-            'details': response.body,
-            'endpoint': endpoint,
-          };
-        }
-      } catch (e) {
-        print('❌ SMS error [$endpoint]: $e');
-        continue;
+    try {
+      print('📱 [ApiService] Отправка SMS через Devino для: $phoneNumber');
+      
+      final result = await DevinoSmsService.instance.sendSmsCode(phoneNumber);
+      
+      if (result['success']) {
+        print('✅ [ApiService] SMS успешно отправлен через Devino');
+        return {
+          'success': true,
+          'data': {
+            'status': 'sent',
+            'messageId': result['messageId'],
+            'smsCode': result['smsCode'],
+          },
+          'provider': 'devino',
+        };
+      } else {
+        print('❌ [ApiService] Ошибка отправки SMS через Devino: ${result['error']}');
+        return {
+          'success': false,
+          'error': result['error'],
+          'provider': 'devino',
+        };
       }
+    } catch (e) {
+      print('❌ [ApiService] Критическая ошибка отправки SMS: $e');
+      return {
+        'success': false,
+        'error': 'Критическая ошибка: $e',
+        'provider': 'devino',
+      };
     }
-    
-    return {
-      'success': false,
-      'error': 'Не найден рабочий эндпоинт для SMS. Проверьте документацию API.',
-    };
   }
 
   // Получить список таксопарков

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../styles/app_colors.dart';
 import '../../styles/app_spacing.dart';
 import '../../services/user_data_service.dart';
-import '../auth/phone_auth_screen.dart';
-import 'final_sms_verification_screen.dart';
+import '../../services/api_service.dart';
+import '../../services/firebase_messaging_service.dart';
+import '../main/main_app_screen.dart';
 
 class DataConfirmationScreen extends StatefulWidget {
   final Map<String, dynamic> selectedPark;
@@ -433,34 +436,117 @@ class _DataConfirmationScreenState extends State<DataConfirmationScreen>
     );
   }
 
-  void _confirmData(BuildContext context) {
-    // Получаем полные данные пользователя
-    final Map<String, dynamic> allData = UserDataService.instance
-        .getCompleteUserData();
+  void _confirmData(BuildContext context) async {
+    final Map<String, dynamic> allData = UserDataService.instance.getCompleteUserData();
 
     print('All data collected: $allData');
 
-    Navigator.of(context).pushAndRemoveUntil(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => PhoneAuthScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(1.0, 0.0);
-          const end = Offset.zero;
-          const curve = Curves.easeInOutCubic;
-
-          var tween = Tween(
-            begin: begin,
-            end: end,
-          ).chain(CurveTween(curve: curve));
-
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 500),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: AppColors.primary),
+              const SizedBox(height: 16),
+              Text(
+                'Регистрация...',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      (route) => false,
     );
+
+    try {
+      final response = await ApiService.instance.registerDriver(allData);
+
+      if (mounted) Navigator.of(context).pop();
+
+      if (response['success']) {
+        final driverId = response['driver_id'];
+        final phoneNumber = allData['user']['phoneNumber'];
+        
+        final driverData = {
+          'id': driverId,
+          'phoneNumber': phoneNumber,
+          'fullName': allData['user']['fullName'],
+          'carModel': '${allData['car']['brand']} ${allData['car']['model']}',
+          'carNumber': allData['car']['licensePlate'],
+          'carBrand': allData['car']['brand'],
+          'carColor': allData['car']['color'],
+          'carYear': allData['car']['year'],
+          'carVin': allData['car']['vin'],
+          'carBodyNumber': allData['car']['bodyNumber'],
+          'carSts': allData['car']['sts'],
+          'taxiparkId': allData['park']['id'],
+          'taxiparkName': allData['park']['name'],
+          'balance': 0.0,
+          'status': 'active',
+          'blocked': false,
+        };
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_logged_in', true);
+        await prefs.setString('driver_data', jsonEncode(driverData));
+        
+        await FirebaseMessagingService().refreshToken();
+        
+        print('✅ Регистрация успешна, данные сохранены');
+        
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainAppScreen()),
+            (route) => false,
+          );
+        }
+      } else {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Ошибка регистрации'),
+              content: Text(response['error'] ?? 'Неизвестная ошибка'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop();
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Ошибка'),
+            content: Text('Ошибка регистрации: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 }
