@@ -12,28 +12,6 @@ class AuthService {
 
   static Future<Map<String, dynamic>> login(String phone, String smsCode) async {
     try {
-      // Проверяем dev-режим для кода 1111
-      if (smsCode == '1111') {
-        print('🔧 DEV MODE: Пропускаем проверку через backend для кода 1111');
-        
-        // Сохраняем данные как авторизованного пользователя
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool(_isLoggedInKey, true);
-        
-        // Сохраняем номер телефона
-        final String normalizedPhone = PhoneUtils.normalizePhoneNumber(phone);
-        await UserDataService.instance.savePhoneNumber(normalizedPhone);
-        
-        // Отправляем FCM токен на сервер
-        await FirebaseMessagingService().refreshToken();
-        
-        return {
-          'success': true,
-          'isNewUser': true,
-          'driver': null,
-        };
-      }
-      
       final response = await ApiService.instance.loginDriver(phone, smsCode);
       
       if (response['success']) {

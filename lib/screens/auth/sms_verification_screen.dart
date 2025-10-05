@@ -131,12 +131,14 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
         }
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Введите полный код'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Введите полный код'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -145,18 +147,7 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
       final fullPhoneNumber = '+996${widget.phoneNumber}';
       final response = await ApiService.instance.sendSmsCode(fullPhoneNumber);
       
-      if (response['success'] && mounted) {
-        // Проверяем, используется ли fallback режим
-        if (response['provider'] == 'fallback' || response['provider'] == 'devino') {
-          final smsCode = response['data']?['smsCode'] ?? response['test_code'];
-          final fallbackReason = response['fallback_reason'];
-          
-          if (smsCode != null) {
-            // Показываем тестовый код пользователю
-            _showTestCodeDialog(smsCode, fallbackReason);
-          }
-        }
-      } else if (!response['success'] && mounted) {
+      if (!response['success'] && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(response['error'] ?? 'Ошибка отправки SMS'),
@@ -174,103 +165,6 @@ class _SmsVerificationScreenState extends State<SmsVerificationScreen> {
         );
       }
     }
-  }
-
-  void _showTestCodeDialog(String smsCode, String? reason) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                color: AppColors.primary,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Тестовый режим',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'SMS сервис временно недоступен. Используйте тестовый код:',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      smsCode,
-                      style: AppTextStyles.h3.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (reason != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Причина: $reason',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Автоматически заполняем код
-                for (int i = 0; i < smsCode.length && i < _controllers.length; i++) {
-                  _controllers[i].text = smsCode[i];
-                }
-                // Переходим к последнему полю
-                if (_controllers.isNotEmpty) {
-                  _focusNodes.last.requestFocus();
-                }
-              },
-              child: Text(
-                'Ввести код',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _resendCode() {

@@ -17,7 +17,7 @@ class LocationDetectionService {
   double? _destinationLat;
   double? _destinationLon;
   
-  static const double _arrivalRadius = 5.0;
+  static const double _arrivalRadius = 100.0;
 
   void startMonitoring({
     required double pickupLat,

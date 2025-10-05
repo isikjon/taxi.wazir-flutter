@@ -127,7 +127,7 @@ class OrderService {
         headers: ApiConfig.defaultHeaders,
         body: json.encode({
           'driver_id': int.parse(driver['id'].toString()),
-          'status': 'cancelled',
+          'status': 'rejected_by_driver',
         }),
       );
 

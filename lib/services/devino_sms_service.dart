@@ -32,11 +32,17 @@ class DevinoSmsService {
         
         if (connectivityResponse.statusCode != 200) {
           print('⚠️ [Devino 2FA] Проблемы с интернет соединением');
-          return _fallbackToTestCode('1234', normalizedPhone, 'Проблемы с интернет соединением');
+          return {
+            'success': false,
+            'error': 'Проблемы с интернет соединением',
+          };
         }
       } catch (e) {
         print('⚠️ [Devino 2FA] Нет интернет соединения: $e');
-        return _fallbackToTestCode('1234', normalizedPhone, 'Нет интернет соединения');
+        return {
+          'success': false,
+          'error': 'Нет интернет соединения',
+        };
       }
 
       // Отправляем запрос на генерацию кода через 2FA API
@@ -72,46 +78,26 @@ class DevinoSmsService {
           };
         } else {
           print('❌ [Devino 2FA] API ошибка: ${responseData['Code']} - ${responseData['Description']}');
-          return _fallbackToTestCode('1234', normalizedPhone, 'Devino 2FA API ошибка: ${responseData['Description']}');
+          return {
+            'success': false,
+            'error': 'Devino 2FA API ошибка: ${responseData['Description']}',
+          };
         }
       } else {
         print('❌ [Devino 2FA] HTTP ошибка: ${response.statusCode}');
-        return _fallbackToTestCode('1234', normalizedPhone, 'HTTP ошибка: ${response.statusCode}');
+        return {
+          'success': false,
+          'error': 'HTTP ошибка: ${response.statusCode}',
+        };
       }
     } catch (e) {
       print('❌ [Devino 2FA] Ошибка отправки SMS: $e');
-      
-      // Если это ошибка DNS или сети, используем fallback
-      if (e.toString().contains('Failed host lookup') || 
-          e.toString().contains('SocketException') ||
-          e.toString().contains('NetworkException')) {
-        final normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber).replaceFirst('+', '');
-        return _fallbackToTestCode('1234', normalizedPhone, 'Ошибка сети: $e');
-      }
       
       return {
         'success': false,
         'error': 'Ошибка сети: $e',
       };
     }
-  }
-
-
-  Map<String, dynamic> _fallbackToTestCode(String smsCode, String phoneNumber, String reason) {
-    print('🔄 [Devino 2FA] Fallback к тестовому коду: $reason');
-    print('🔢 [Devino 2FA] FALLBACK КОД ДЛЯ ОТЛАДКИ: $smsCode');
-    print('📱 [Devino 2FA] Номер: $phoneNumber');
-    print('⏰ [Devino 2FA] Время fallback: ${DateTime.now().toString()}');
-    
-    return {
-      'success': true,
-      'messageId': 'fallback_${DateTime.now().millisecondsSinceEpoch}',
-      'smsCode': smsCode,
-      'phoneNumber': phoneNumber,
-      'provider': 'fallback',
-      'fallback_reason': reason,
-      'data': {'code': 0, 'description': 'Fallback mode'},
-    };
   }
 
   Future<Map<String, dynamic>> getSmsStatus(String messageId, String phoneNumber) async {

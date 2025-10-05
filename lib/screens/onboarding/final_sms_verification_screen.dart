@@ -306,13 +306,15 @@ class _FinalSmsVerificationScreenState extends State<FinalSmsVerificationScreen>
   }
 
   void _verifyCode() async {
-    if (_verificationCode != '1111') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Неверный код. Попробуйте еще раз.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (_verificationCode.length != 4) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Введите полный код из 4 цифр'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
@@ -321,22 +323,24 @@ class _FinalSmsVerificationScreenState extends State<FinalSmsVerificationScreen>
     });
 
     try {
-      // Отправляем данные на backend
       await _sendDataToBackend();
       
-      // Показываем экран успеха
-      _showSuccessScreen();
+      if (mounted) {
+        _showSuccessScreen();
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
