@@ -79,6 +79,7 @@ flutter:
     - assets/data/cars.json
     - assets/images/
     - assets/dgissdk.key
+    - assets/dgissdk_ios.key
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
