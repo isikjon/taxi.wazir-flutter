@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:eco_taxi/firebase_options.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:dgis_mobile_sdk_full/dgis.dart' as sdk;
@@ -18,37 +21,48 @@ late sdk.Context sdkContext;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Colors.white, // фон статус-бара
-        statusBarIconBrightness: Brightness.dark, // иконки тёмные
-      ),
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.white, // фон статус-бара
+      statusBarIconBrightness: Brightness.dark, // иконки тёмные
+    ),
   );
-  
+
   try {
     // Инициализируем Firebase
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     print('✅ Firebase инициализирован');
-    
+
     // Инициализируем Firebase Messaging
     await FirebaseMessagingService().initialize();
     print('✅ Firebase Messaging инициализирован');
   } catch (e) {
     print('❌ Ошибка инициализации Firebase: $e');
   }
-  
+
   try {
     // Загружаем ключ из assets
     final keyData = await rootBundle.loadString('assets/dgissdk.key');
     final apiKey = keyData.trim();
-    
+
     if (apiKey.isEmpty || apiKey == 'YOUR_2GIS_API_KEY_HERE') {
-      throw Exception('2GIS API ключ не настроен. Замените содержимое файла assets/dgissdk.key на ваш реальный ключ');
+      throw Exception(
+        '2GIS API ключ не настроен. Замените содержимое файла assets/dgissdk.key на ваш реальный ключ',
+      );
     }
-    
+
+    final iosKey  = const sdk.KeyFromAsset('dgissdk_ios.key');
+    final androidKey  = const sdk.KeyFromAsset('dgissdk.key');
+
+    final key =  sdk.KeySource.fromAsset(Platform.isAndroid ? androidKey : iosKey);
+
     // Инициализируем SDK
-    sdkContext = await sdk.DGis.initialize();
-    print('2GIS SDK инициализирован успешно с ключом: ${apiKey.substring(0, 8)}...');
-    
+    sdkContext = await sdk.DGis.initialize(keySource: key);
+    print(
+      '2GIS SDK инициализирован успешно с ключом: ${apiKey.substring(0, 8)}...',
+    );
+
     // Инициализируем сервис навигации
     NavigationService().initialize(sdkContext);
   } catch (e) {
@@ -56,7 +70,7 @@ void main() async {
     // Не прерываем запуск приложения, просто логируем ошибку
     sdkContext = await sdk.DGis.initialize();
   }
-  
+
   runApp(const TaxiApp());
 }
 
@@ -66,6 +80,7 @@ class TaxiApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowMaterialGrid: false,
       title: 'Eco Такси',
       theme: AppTheme.lightTheme,
       home: const AuthWrapper(),
@@ -128,11 +143,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_isLoggedIn) {
@@ -178,13 +189,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      print('Разрешение отклонено навсегда. Пользователю нужно включить в настройках');
+      print(
+        'Разрешение отклонено навсегда. Пользователю нужно включить в настройках',
+      );
       return;
     }
 
     print('Разрешение на геолокацию получено');
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
     print('Текущая позиция: ${position.latitude}, ${position.longitude}');
   }
 }
-
