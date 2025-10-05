@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:eco_taxi/firebase_options.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -50,8 +52,13 @@ void main() async {
       );
     }
 
+    final iosKey  = const sdk.KeyFromAsset('dgissdk_ios.key');
+    final androidKey  = const sdk.KeyFromAsset('dgissdk.key');
+
+    final key =  sdk.KeySource.fromAsset(Platform.isAndroid ? androidKey : iosKey);
+
     // Инициализируем SDK
-    sdkContext = await sdk.DGis.initialize();
+    sdkContext = await sdk.DGis.initialize(keySource: key);
     print(
       '2GIS SDK инициализирован успешно с ключом: ${apiKey.substring(0, 8)}...',
     );
