@@ -1,3 +1,5 @@
+import 'package:eco_taxi/screens/auth/phone_auth_screen.dart';
+import 'package:eco_taxi/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../styles/app_colors.dart';
@@ -20,6 +22,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   Map<String, dynamic>? _userData;
   Map<String, dynamic>? _driverProfile;
   bool _isLoading = true;
+  bool _isLoadingDeleteAccount = true;
 
   @override
   void initState() {
@@ -32,9 +35,11 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       await UserDataService.instance.loadFromStorage();
       final userData = UserDataService.instance.userData;
       final phoneNumber = userData['phoneNumber'];
-      
+
       if (phoneNumber != null) {
-        final driverProfile = await DriverService().getDriverProfile(phoneNumber);
+        final driverProfile = await DriverService().getDriverProfile(
+          phoneNumber,
+        );
         setState(() {
           _userData = userData;
           _driverProfile = driverProfile;
@@ -50,6 +55,20 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       print('Error loading user data: $e');
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    try {
+      await DriverService().deleteAccount();
+      setState(() {
+        _isLoadingDeleteAccount = false;
+      });
+    } catch (e) {
+      print('Error loading user data: $e');
+      setState(() {
+        _isLoadingDeleteAccount = false;
       });
     }
   }
@@ -104,10 +123,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
           ),
           IconButton(
             onPressed: _loadUserData,
-            icon: const Icon(
-              Icons.refresh,
-              color: AppColors.textPrimary,
-            ),
+            icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -126,9 +142,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
             _getCarInfo(),
             Icons.directions_car,
             () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const CarDetailsScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const CarDetailsScreen()),
             ),
           ),
           _buildMenuItem(
@@ -136,9 +150,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
             _getEmploymentInfo(),
             Icons.business,
             () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const EmploymentScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const EmploymentScreen()),
             ),
           ),
           _buildMenuItem(
@@ -155,8 +167,10 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
             'Выйти из аккаунта',
             null,
             Icons.logout,
-            _showLogoutDialog,
+            _handleLogout,
           ),
+
+          _buildMenuItem('Удалить аккаунт', null, Icons.logout, _deleteAccountShow),
         ],
       ),
     );
@@ -184,7 +198,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
           width: 25,
           height: 25,
           decoration: const BoxDecoration(
-            color: AppColors.primaryWithOpacity20, // Зеленый цвет как в требованиях
+            color: AppColors.primaryWithOpacity20,
+            // Зеленый цвет как в требованиях
             shape: BoxShape.circle,
           ),
         ),
@@ -205,7 +220,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                 ),
               )
             : null,
-        trailing: title == 'Выйти из аккаунта'
+        trailing: title == 'Выйти из аккаунта' || title == 'Удалить аккаунт'
             ? null
             : const Icon(
                 Icons.arrow_forward_ios,
@@ -221,7 +236,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     if (_driverProfile != null) {
       final carModel = _driverProfile!['car_model'] ?? '';
       final carNumber = _driverProfile!['car_number'] ?? '';
-      
+
       if (carModel.isNotEmpty && carNumber.isNotEmpty) {
         return '$carModel, $carNumber';
       } else if (carModel.isNotEmpty) {
@@ -230,19 +245,19 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
         return carNumber;
       }
     }
-    
+
     if (_userData != null) {
       final carBrand = _userData!['carBrand'] ?? '';
       final carModel = _userData!['carModel'] ?? '';
       final licensePlate = _userData!['licensePlate'] ?? '';
-      
+
       if (carBrand.isNotEmpty && carModel.isNotEmpty) {
         return '$carBrand $carModel';
       } else if (licensePlate.isNotEmpty) {
         return licensePlate;
       }
     }
-    
+
     return 'Не указано';
   }
 
@@ -250,10 +265,12 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     if (_driverProfile != null && _driverProfile!['taxipark'] != null) {
       final taxiparkName = _driverProfile!['taxipark']['name'] ?? '';
       if (taxiparkName.isNotEmpty) {
-        return taxiparkName.length > 15 ? '${taxiparkName.substring(0, 15)}...' : taxiparkName;
+        return taxiparkName.length > 15
+            ? '${taxiparkName.substring(0, 15)}...'
+            : taxiparkName;
       }
     }
-    
+
     if (_userData != null) {
       final park = _userData!['selectedPark'];
       if (park != null && park['name'] != null) {
@@ -261,75 +278,150 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
         return name.length > 15 ? '${name.substring(0, 15)}...' : name;
       }
     }
-    
+
     return 'Не указано';
   }
 
-  void _showLogoutDialog() {
-    showDialog(
+  Future<void> _handleLogout() async {
+    // Показываем диалог подтверждения
+    final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        content: Text(
-          'Вы уверены что хотите выйти из аккаунта?',
-          style: GoogleFonts.montserrat(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: Colors.black,
-          ),
-          textAlign: TextAlign.center,
-        ),
+        title: const Text('Выход из аккаунта'),
+        content: const Text('Вы уверены, что хотите выйти из аккаунта?'),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Нет',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _handleLogout();
-                  },
-                  child: Text(
-                    'Да',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.red,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Выйти'),
           ),
         ],
       ),
     );
-  }
 
-  void _handleLogout() async {
-    try {
-      await UserDataService.instance.clearUserData();
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/phone_auth',
-        (route) => false,
+    if (shouldLogout == true) {
+      // Показываем индикатор загрузки
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
-    } catch (e) {
-      print('Error during logout: $e');
+
+      try {
+        // Выполняем выход
+        await AuthService.logout();
+
+        // Закрываем диалог загрузки
+        if (mounted) Navigator.of(context).pop();
+
+        // Перенаправляем на экран авторизации
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const PhoneAuthScreen()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        // Закрываем диалог загрузки
+        if (mounted) Navigator.of(context).pop();
+
+        // Показываем ошибку
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ошибка при выходе: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
+
+  Future<void> _deleteAccountShow() async {
+    // Показываем диалог подтверждения
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удаление аккаунта'),
+        content: const Text(
+          'При удалении аккаунта произойдут следующие действия:\n\n'
+          '• Удалятся все записи фотоконтроля и связанные фотографии.\n'
+          '• Будут удалены все транзакции (баланс, пополнения, списания).\n'
+          '• Все заказы останутся, но водитель будет отвязан от них.\n'
+          '• Аккаунт водителя будет полностью удалён.\n'
+          '• В таксопарке обновится счётчик водителей.\n\n'
+          'Вы уверены, что хотите продолжить?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Удалить аккаунт',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      // Показываем индикатор загрузки
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        // Выполняем выход
+
+        await _deleteAccount();
+        await AuthService.logout();
+
+        // Закрываем диалог загрузки
+        if (mounted) Navigator.of(context).pop();
+
+        // Перенаправляем на экран авторизации
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const PhoneAuthScreen()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        // Закрываем диалог загрузки
+        if (mounted) Navigator.of(context).pop();
+
+        // Показываем ошибку
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ошибка при удалении: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // void _handleLogout() async {
+  //   try {
+  //     await UserDataService.instance.clearUserData();
+  //     Navigator.of(context).pushNamedAndRemoveUntil(
+  //       '/phone_auth',
+  //       (route) => false,
+  //     );
+  //   } catch (e) {
+  //     print('Error during logout: $e');
+  //   }
+  // }
 }
