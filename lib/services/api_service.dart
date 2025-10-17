@@ -140,38 +140,48 @@ class ApiService {
     };
   }
 
-  // Отправка SMS кода через Devino
+  // Отправка SMS кода через Backend API
   Future<Map<String, dynamic>> sendSmsCode(String phoneNumber) async {
     try {
-      print('📱 [ApiService] Отправка SMS через Devino для: $phoneNumber');
-      
-      final result = await DevinoSmsService.instance.sendSmsCode(phoneNumber);
-      
-      if (result['success']) {
-        print('✅ [ApiService] SMS успешно отправлен через Devino');
-        return {
-          'success': true,
-          'data': {
-            'status': 'sent',
-            'messageId': result['messageId'],
-            'smsCode': result['smsCode'],
-          },
-          'provider': 'devino',
-        };
+      final normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
+      print('📱 [ApiService] Отправка SMS через Backend API для: $normalizedPhone');
+
+      final response = await http.post(
+        Uri.parse(ApiConfig.getEndpointUrl('sms_send')),
+        headers: ApiConfig.defaultHeaders,
+        body: json.encode({'phoneNumber': normalizedPhone}),
+      );
+
+      print('📱 [ApiService] SMS response status: ${response.statusCode}');
+      print('📱 [ApiService] SMS response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          print('✅ [ApiService] SMS успешно отправлен через Backend');
+          return {
+            'success': true,
+            'data': responseData,
+          };
+        } else {
+          print('❌ [ApiService] Backend вернул ошибку: ${responseData['detail']}');
+          return {
+            'success': false,
+            'error': responseData['detail'] ?? 'Ошибка отправки SMS',
+          };
+        }
       } else {
-        print('❌ [ApiService] Ошибка отправки SMS через Devino: ${result['error']}');
+        print('❌ [ApiService] HTTP ошибка: ${response.statusCode}');
         return {
           'success': false,
-          'error': result['error'],
-          'provider': 'devino',
+          'error': 'HTTP ошибка: ${response.statusCode}',
         };
       }
     } catch (e) {
       print('❌ [ApiService] Критическая ошибка отправки SMS: $e');
       return {
         'success': false,
-        'error': 'Критическая ошибка: $e',
-        'provider': 'devino',
+        'error': 'Ошибка сети: $e',
       };
     }
   }
