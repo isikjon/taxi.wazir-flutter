@@ -795,6 +795,7 @@ class _OnlineNavigationScreenState extends State<OnlineNavigationScreen> with Wi
         return true;
       },
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: const ColorScheme.light(
             primary: AppColors.primary,
