@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:eco_taxi/services/user_data_service.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 
@@ -106,6 +107,33 @@ class DriverService {
       } else {
         print('❌ Error getting weekly results: ${response.statusCode}');
         return null;
+      }
+    } catch (e) {
+      print('❌ Exception getting weekly results: $e');
+      return null;
+    }
+
+
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      await UserDataService.instance.loadFromStorage();
+      final userData = UserDataService.instance.userData;
+      final phoneNumber = userData['phoneNumber'];
+
+      final encodedPhone = Uri.encodeComponent(phoneNumber);
+      final response = await http.delete(
+        Uri.parse('$_baseUrl/api/drivers/delete-account?phoneNumber=$encodedPhone'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('✅ deleteAccount response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+      print('✅ deleteAccount success');
       }
     } catch (e) {
       print('❌ Exception getting weekly results: $e');

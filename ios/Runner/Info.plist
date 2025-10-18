@@ -31,15 +31,15 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Камера используется для фотографирования автомобиля и прохождения идентификации водителя.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Приложение использует ваше местоположение для точной навигации</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Приложение использует ваше местоположение даже в фоне</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Приложение использует ваше местоположение для работы сервиса</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Доступ к фото используется для загрузки изображений автомобиля и документов водителя.</string>
-	<key>NSUserNotificationUsageDescription</key>
-	<string>Приложение хочет отправлять уведомления</string>
+    <string>Ваше местоположение используется для точного определения позиции автомобиля и корректной работы навигации, даже если приложение работает в фоне.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Приложению требуется доступ к вашему местоположению в фоновом режиме, чтобы обеспечивать точное определение маршрута и контроль поездки, даже если экран устройства выключен.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Ваше местоположение используется для определения ближайших заказов, построения маршрута и корректной работы сервиса, когда приложение активно.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Доступ к фотогалерее необходим для загрузки изображений вашего автомобиля, водительских документов и других подтверждающих файлов.</string>
+    <key>NSUserNotificationUsageDescription</key>
+    <string>Приложению требуется разрешение на отправку уведомлений, чтобы вы могли своевременно получать новые заказы, обновления статуса и другие важные сообщения.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
