@@ -18,10 +18,12 @@ class DevinoSmsService {
 
   Future<Map<String, dynamic>> sendSmsCode(String phoneNumber) async {
     try {
-      // Нормализуем номер телефона (убираем + для Devino 2FA API)
+      // Нормализуем номер телефона для Devino 2FA API
+      // Пробуем оригинальный формат кыргызского номера
       final normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber).replaceFirst('+', '');
       
-      print('📱 [Devino 2FA] Отправка SMS на номер: $normalizedPhone');
+      print('📱 [Devino 2FA] Исходный номер: $phoneNumber');
+      print('📱 [Devino 2FA] Нормализованный номер: $normalizedPhone');
       print('📱 [Devino 2FA] API URL: $_baseUrl/GenerateCode');
       
       // Проверяем интернет соединение
@@ -102,7 +104,7 @@ class DevinoSmsService {
 
   Future<Map<String, dynamic>> getSmsStatus(String messageId, String phoneNumber) async {
     try {
-      final normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
+      final normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber).replaceFirst('+', '');
       
       print('📱 [Devino] Проверка статуса SMS: $messageId для $normalizedPhone');
 
@@ -150,6 +152,65 @@ class DevinoSmsService {
   }
 
 
+
+  // Проверка SMS кода через Devino 2FA API
+  Future<Map<String, dynamic>> checkSmsCode(String phoneNumber, String code) async {
+    try {
+      final normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber).replaceFirst('+', '');
+      
+      print('📱 [Devino 2FA] Проверка кода: $code для номера: $normalizedPhone');
+      
+      final requestBody = {
+        'DestinationNumber': normalizedPhone,
+        'Code': code,
+      };
+
+      print('📤 [Devino 2FA] Отправка запроса проверки: ${jsonEncode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/CheckCode'),
+        headers: _headers,
+        body: jsonEncode(requestBody),
+      ).timeout(const Duration(seconds: 30));
+
+      print('📤 [Devino 2FA] Ответ проверки: ${response.statusCode}');
+      print('📤 [Devino 2FA] Тело ответа: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        
+        if (responseData['Code'] == 0) {
+          print('✅ [Devino 2FA] Код проверен успешно');
+          return {
+            'success': true,
+            'valid': true,
+            'data': responseData,
+          };
+        } else {
+          print('❌ [Devino 2FA] Код неверный: ${responseData['Code']} - ${responseData['Description']}');
+          return {
+            'success': false,
+            'valid': false,
+            'error': 'Devino 2FA API ошибка: ${responseData['Description']}',
+          };
+        }
+      } else {
+        print('❌ [Devino 2FA] HTTP ошибка проверки: ${response.statusCode}');
+        return {
+          'success': false,
+          'valid': false,
+          'error': 'HTTP ошибка: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      print('❌ [Devino 2FA] Ошибка проверки кода: $e');
+      return {
+        'success': false,
+        'valid': false,
+        'error': 'Ошибка сети: $e',
+      };
+    }
+  }
 
   String getSmsStatusDescription(String status) {
     switch (status) {

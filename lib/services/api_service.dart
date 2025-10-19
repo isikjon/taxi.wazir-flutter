@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../utils/phone_utils.dart';
-import 'devino_sms_service.dart';
 
 class ApiService {
   static String get baseUrl => ApiConfig.baseUrl;
